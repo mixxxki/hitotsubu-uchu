@@ -47,7 +47,7 @@ export const BALANCE = {
   ascendGainMult: 10,
   ascendGainDiv: 22,
   /** 次元エネルギーの効果: 粒子生産 ×(1+E)^energyExp */
-  energyExp: 1,
+  energyExp: 0.6,
   /** 次元エネルギーの効果: 宇宙定数獲得 ×(1+E)^energyConstExp */
   energyConstExp: 0.15,
   /** 次元エネルギーの効果: 次元の欠片獲得 ×(1+E)^energyShardExp */

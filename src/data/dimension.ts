@@ -30,7 +30,7 @@ export const DIM_UPGRADES: DimUpgradeDef[] = [
   { id: 'd_cgain', name: '定数の奔流', desc: '宇宙定数の獲得×10', cost: 25, effect: { type: 'constGain', mult: 10 } },
   { id: 'd_dim', name: '次元の厚み', desc: '次元装置の生産×3', cost: 60, effect: { type: 'dimGenMult', mult: 3 } },
   { id: 'd_off', name: '時の外側', desc: '放置上限+72時間', cost: 150, effect: { type: 'offlineHours', add: 72 } },
-  { id: 'd_exp', name: '次元の浸透', desc: '次元エネルギー効果の指数+0.3', cost: 400, effect: { type: 'energyExp', add: 0.3 } },
+  { id: 'd_exp', name: '次元の浸透', desc: '次元エネルギー効果の指数+0.15', cost: 400, effect: { type: 'energyExp', add: 0.15 } },
   { id: 'd_shard', name: '欠片の共鳴', desc: '次元の欠片の獲得×3', cost: 2000, effect: { type: 'shardGain', mult: 3 } },
   { id: 'd_dim2', name: '次元の深み', desc: '次元装置の生産×10', cost: 2e4, effect: { type: 'dimGenMult', mult: 10 } },
   { id: 'd_prod2', name: '超越の視点', desc: 'すべての生産×1e10', cost: 2e5, effect: { type: 'prodMult', mult: 1e10 } },
