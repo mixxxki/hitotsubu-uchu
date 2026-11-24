@@ -4,8 +4,10 @@ import { type GameState, newState, SAVE_VERSION } from './state.ts';
 
 export const SAVE_KEY = 'hitotsubu-uchu-save';
 
-function replacer(_k: string, v: unknown): unknown {
-  if (v instanceof Decimal) return { __d: v.toString() };
+// Decimal は toJSON を持つため、置換前の生の値（this[k]）で判定する
+function replacer(this: Record<string, unknown>, k: string, v: unknown): unknown {
+  const raw = this[k];
+  if (raw instanceof Decimal) return { __d: raw.toString() };
   if (v instanceof Set) return { __s: [...v] };
   if (v === Infinity) return { __inf: 1 };
   return v;
@@ -28,7 +30,11 @@ export function serialize(s: GameState): string {
 /** 既定値に読み込んだ値を重ねる（項目追加に強くする） */
 function merge<T>(base: T, loaded: unknown): T {
   if (loaded === undefined || loaded === null) return base;
-  if (base instanceof Decimal) return (loaded instanceof Decimal && !loaded.isNan() ? loaded : base) as T;
+  if (base instanceof Decimal) {
+    // 旧形式（文字列）のセーブも救う
+    const d = loaded instanceof Decimal ? loaded : typeof loaded === 'string' || typeof loaded === 'number' ? new Decimal(loaded) : null;
+    return (d && !d.isNan() ? d : base) as T;
+  }
   if (base instanceof Set) return (loaded instanceof Set ? loaded : base) as T;
   if (Array.isArray(base)) {
     if (!Array.isArray(loaded)) return base;
@@ -47,6 +53,8 @@ function merge<T>(base: T, loaded: unknown): T {
 export function deserialize(json: string): GameState {
   const raw = JSON.parse(json, reviver) as Record<string, unknown>;
   if (!raw || typeof raw !== 'object' || typeof raw.version !== 'number') throw new Error('セーブデータの形式が正しくありません');
+  if (raw.version > SAVE_VERSION) throw new Error('新しいバージョンのセーブデータです');
+  for (const k of ['particles', 'gens', 'time', 'lastSave']) if (!(k in raw)) throw new Error('セーブデータが欠けています');
   const base = newState();
   // null を許す項目
   const s = merge(base, raw);
@@ -95,4 +103,14 @@ export function exportSave(s: GameState): string {
 
 export function importSave(text: string): GameState {
   return deserialize(b64decode(text));
+}
+
+/** インポート前などに直前のセーブを退避する */
+export function backupLocal(): void {
+  try {
+    const j = localStorage.getItem(SAVE_KEY);
+    if (j) localStorage.setItem(SAVE_KEY + '-backup', j);
+  } catch {
+    /* noop */
+  }
 }

@@ -3,7 +3,8 @@ import type { Game, OfflineReport } from '../core/game.ts';
 import { tap, catchStar } from '../core/actions.ts';
 import { hasRule } from '../core/formulas.ts';
 import { onEvent } from '../core/events.ts';
-import { exportSave, importSave } from '../core/save.ts';
+import { exportSave, importSave, backupLocal } from '../core/save.ts';
+import { offlineCapSeconds } from '../core/formulas.ts';
 import { ACHIEVEMENTS } from '../data/achievements.ts';
 import { AUTOMATIONS } from '../data/automation.ts';
 import { CHALLENGES } from '../data/challenges.ts';
@@ -210,17 +211,22 @@ export class App {
   showOffline(r: OfflineReport): void {
     const ok = h('button', { class: 'btn fill block', type: 'button', style: 'margin-top:14px' }, '受け取る');
     ok.addEventListener('click', () => closeSheet());
-    const rows: HTMLElement[] = [h('div', { class: 'kv' }, [h('span', {}, '留守にしていた時間'), h('span', {}, fmtTime(r.seconds) + (r.capped ? '（上限）' : ''))])];
-    if (r.constantsGained.gt(0)) rows.push(h('div', { class: 'kv' }, [h('span', {}, '宇宙定数'), h('span', {}, `+${fmt(r.constantsGained)}`)]));
-    if (r.shardsGained.gt(0)) rows.push(h('div', { class: 'kv' }, [h('span', {}, '次元の欠片'), h('span', {}, `+${fmt(r.shardsGained)}`)]));
+    const kv = (k: string, v: string) => h('div', { class: 'kv' }, [h('span', {}, k), h('span', {}, v)]);
+    const rows: HTMLElement[] = [kv('留守にしていた時間', fmtTime(r.elapsed))];
+    if (r.capped) rows.push(kv('計算した時間（上限）', fmtTime(r.seconds)));
+    if (r.bigBangs > 0) rows.push(kv('自動ビッグバン', `${r.bigBangs}回`));
+    if (r.constantsGained.gt(0)) rows.push(kv('宇宙定数', `+${fmt(r.constantsGained)}`));
+    if (r.ascensions > 0) rows.push(kv('次元上昇', `${r.ascensions}回`));
+    if (r.shardsGained.gt(0)) rows.push(kv('次元の欠片', `+${fmt(r.shardsGained)}`));
+    if (r.achievements > 0) rows.push(kv('解除した実績', `${r.achievements}個`));
     openSheet(
       h('div', {}, [
         h('h2', {}, 'おかえりなさい'),
         h('p', { class: 'desc' }, '留守中も宇宙は広がっていた。'),
-        h('div', { class: 'small muted' }, '留守中に'),
+        h('div', { class: 'small muted' }, r.bigBangs > 0 ? '留守中に生まれた粒子（合計）' : '留守中に'),
         h('div', { class: 'big-num lime', style: 'margin-bottom:8px' }, `+${fmt(r.gained)}`),
         ...rows,
-        r.capped ? h('p', { class: 'small muted' }, '放置の上限は法則の木・次元の刻印で延ばせる。') : '',
+        r.capped ? h('p', { class: 'small muted' }, `放置の上限は今 ${fmtTime(r.cap)}。法則の木・次元の刻印で延ばせる。`) : '',
         ok,
       ]),
     );
@@ -278,17 +284,38 @@ export class App {
         toast('文字列を貼り付けてください');
         return;
       }
+      let ns: ReturnType<typeof importSave>;
       try {
-        const ns = importSave(text);
+        ns = importSave(text);
+      } catch (e) {
+        toast(e instanceof Error && /バージョン|欠け/.test(e.message) ? e.message : '読み込めなかった（文字列を確認）');
+        return;
+      }
+      const yes = h('button', { class: 'btn fill', type: 'button' }, '上書きする');
+      const no = h('button', { class: 'btn ghost', type: 'button' }, 'やめる');
+      no.addEventListener('click', () => closeSheet());
+      yes.addEventListener('click', () => {
+        backupLocal();
         this.game.replace(ns);
         this.game.save();
         setNotation(ns.settings.notation);
         closeSheet();
-        toast('インポートした', 'lime');
+        toast('インポートした（直前のデータは端末内に退避済み）', 'lime');
         this.views.auto.syncInputs();
-      } catch {
-        toast('読み込めなかった（文字列を確認）');
-      }
+      });
+      const kv = (k: string, v: string) => h('div', { class: 'kv' }, [h('span', {}, k), h('span', {}, v)]);
+      openSheet(
+        h('div', {}, [
+          h('h2', {}, 'このデータで上書きする？'),
+          h('p', { class: 'desc' }, '今の進行はこのデータに置き換わる。'),
+          kv('粒子', fmt(ns.particles)),
+          kv('ビッグバン（累計）', `${ns.bigBangsEver}回`),
+          kv('次元上昇', `${ns.ascensions}回`),
+          kv('実績', `${ns.achievements.size}個`),
+          kv('プレイ時間', fmtTime(ns.time)),
+          h('div', { class: 'actions' }, [no, yes]),
+        ]),
+      );
     });
     const save = h('button', { class: 'btn ghost', type: 'button' }, '今すぐ保存');
     save.addEventListener('click', () => {
@@ -315,6 +342,7 @@ export class App {
         notSeg,
         h('div', { class: 'auto-row', style: 'margin-top:8px' }, [h('div', { class: 'grow' }, 'タップ時の浮かぶ数字'), flSw]),
         h('div', { class: 'section-title' }, 'セーブデータ（5秒ごとに自動保存）'),
+        h('div', { class: 'small muted', style: 'margin-bottom:6px' }, `放置の上限：${fmtTime(offlineCapSeconds(this.game.mods))}`),
         ta,
         h('div', { class: 'actions' }, [exp, imp]),
         h('div', { class: 'actions' }, [save, reset]),

@@ -61,12 +61,16 @@ export function tick(s: GameState, dt: number, opts: TickOptions = {}): Mods {
   }
 
   // 自動購入
+  // 自動購入（大きな dt でも回数がずれないよう複数回まわす）
   s.autoAcc += dt;
   const interval = AUTO_BUY_INTERVAL / m.autoSpeed;
-  if (s.autoAcc >= interval) {
-    s.autoAcc = 0;
+  let runs = 0;
+  while (s.autoAcc >= interval && runs < 8) {
+    s.autoAcc -= interval;
     m = runAutomation(s, m);
+    runs++;
   }
+  if (s.autoAcc >= interval) s.autoAcc = 0;
 
   return m;
 }

@@ -5,10 +5,16 @@ import { type Mods, computeMods, offlineCapSeconds } from './formulas.ts';
 import { tick, slowCheck } from './tick.ts';
 import { scheduleStar } from './actions.ts';
 import { saveLocal, loadLocal } from './save.ts';
+import { setMuted } from './events.ts';
 import { BALANCE } from '../data/balance.ts';
 
 export interface OfflineReport {
-  seconds: number;
+  seconds: number; // 計算した秒数
+  elapsed: number; // 実際に留守だった秒数
+  cap: number;
+  bigBangs: number;
+  ascensions: number;
+  achievements: number;
   capped: boolean;
   gained: Decimal;
   shardsGained: Decimal;
@@ -39,11 +45,23 @@ export class Game {
     const before = s.allTotal;
     const shards0 = s.shardsEver;
     const const0 = s.constantsAllTime;
-    const steps = Math.max(1, Math.min(BALANCE.offlineSteps, Math.ceil(secs)));
+    const bb0 = s.bigBangsEver;
+    const asc0 = s.ascensions;
+    const ach0 = s.achievements.size;
+    // 流れ星の倍率は留守中には持ち越さない
+    s.buffUntil = Math.min(s.buffUntil, s.time);
+    this.mods = computeMods(s);
+    // 1ステップは最大 offlineMaxDt 秒。ステップ数は offlineSteps まで
+    const steps = Math.max(1, Math.min(BALANCE.offlineSteps, Math.ceil(secs / BALANCE.offlineMaxDt)));
     const dt = secs / steps;
-    for (let i = 0; i < steps; i++) {
-      this.mods = tick(s, dt, { offline: true });
-      if (i % 20 === 0) slowCheck(s, this.mods);
+    setMuted(true);
+    try {
+      for (let i = 0; i < steps; i++) {
+        this.mods = tick(s, dt, { offline: true });
+        if (i % 20 === 0) slowCheck(s, this.mods);
+      }
+    } finally {
+      setMuted(false);
     }
     s.longestOffline = Math.max(s.longestOffline, elapsed);
     if (elapsed >= BALANCE.offlineMinSeconds) {
@@ -57,6 +75,11 @@ export class Game {
     if (elapsed < BALANCE.offlineMinSeconds) return null;
     return {
       seconds: secs,
+      elapsed,
+      cap,
+      bigBangs: s.bigBangsEver - bb0,
+      ascensions: s.ascensions - asc0,
+      achievements: s.achievements.size - ach0,
       capped: elapsed > cap,
       gained: s.allTotal.sub(before),
       shardsGained: s.shardsEver.sub(shards0),

@@ -376,3 +376,5 @@ input, select, textarea { font: inherit; color: var(--text); }
 @media (min-height: 760px) {
   .top .amount { font-size: 34px; }
 }
+
+.stale-msg { position: fixed; inset: 0; z-index: 100; background: rgba(7, 7, 12, 0.92); display: grid; place-items: center; padding: 32px; text-align: center; color: var(--text); font-size: 15px; }

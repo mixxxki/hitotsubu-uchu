@@ -5,6 +5,7 @@ import '@fontsource/m-plus-1p/700.css';
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { Game } from './core/game.ts';
+import { SAVE_KEY } from './core/save.ts';
 import { App } from './ui/app.ts';
 
 const game = new Game();
@@ -30,6 +31,19 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 window.addEventListener('pagehide', () => game.save());
+
+// 別のタブで同じデータが保存されたら、二重進行を防ぐためこのタブを止める
+window.addEventListener('storage', (e) => {
+  if (e.key !== SAVE_KEY) return;
+  game.stop();
+  game.save = () => {};
+  document.body.classList.add('stale');
+  const msg = document.createElement('div');
+  msg.className = 'stale-msg';
+  msg.textContent = '別のタブで遊んでいます。このタブは止まりました。タップで再読み込み。';
+  msg.addEventListener('click', () => location.reload());
+  document.body.append(msg);
+});
 
 registerSW({ immediate: true });
 

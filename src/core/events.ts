@@ -17,6 +17,13 @@ export function onEvent(fn: Listener): void {
   listeners.push(fn);
 }
 
+let muted = false;
+/** 放置の一括計算中は通知を止める（結果はまとめて表示する） */
+export function setMuted(m: boolean): void {
+  muted = m;
+}
+
 export function emit(e: GameEvent): void {
+  if (muted) return;
   for (const l of listeners) l(e);
 }

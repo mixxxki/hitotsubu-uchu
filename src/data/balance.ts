@@ -56,5 +56,6 @@ export const BALANCE = {
   // ---- 放置 ----
   offlineCapHours: 24,
   offlineMinSeconds: 30, // これ未満の留守は表示しない
-  offlineSteps: 600, // 一括計算の分割数
+  offlineSteps: 4000, // 一括計算の最大分割数
+  offlineMaxDt: 5, // 1ステップの最大秒数（超える場合は分割数の上限で打ち切り）
 } as const;

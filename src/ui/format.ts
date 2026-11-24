@@ -45,7 +45,7 @@ export function fmtTime(sec: number): string {
   const h = Math.floor((sec % 86400) / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
-  if (d > 0) return `${d}日${h}時間`;
+  if (d > 0) return h > 0 ? `${d}日${h}時間` : `${d * 24 > 72 ? `${d}日` : `${d * 24}時間`}`;
   if (h > 0) return `${h}時間${m}分`;
   if (m > 0) return `${m}分${s}秒`;
   return `${s}秒`;

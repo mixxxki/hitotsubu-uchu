@@ -65,16 +65,20 @@ export class AutomationView {
     this.bbVal = h('input', { type: 'number', inputmode: 'decimal', min: '0', step: 'any', 'aria-label': '値' }) as HTMLInputElement;
     this.bbMode.addEventListener('change', () => (this.game.s.auto.bigBangMode = this.bbMode.value as AutoBBMode));
     this.bbVal.addEventListener('change', () => {
-      const v = Number(this.bbVal.value);
-      if (isFinite(v) && v >= 0) this.game.s.auto.bigBangValue = v;
+      const raw = this.bbVal.value.trim();
+      const v = Number(raw);
+      if (raw !== '' && isFinite(v) && v > 0) this.game.s.auto.bigBangValue = v;
+      this.syncInputs();
     });
     bbCard.extra.append(h('div', { class: 'field' }, [this.bbMode, this.bbVal]), h('div', { class: 'small muted', style: 'margin-top:6px' }, '挑戦中は目標達成で自動ビッグバン。次元上昇できるときは止まる。'));
 
     const ascCard = this.cards.get('autoAscend')!;
     this.ascVal = h('input', { type: 'number', inputmode: 'decimal', min: '1', step: 'any', 'aria-label': '欠片' }) as HTMLInputElement;
     this.ascVal.addEventListener('change', () => {
-      const v = Number(this.ascVal.value);
-      if (isFinite(v) && v >= 1) this.game.s.auto.ascendValue = v;
+      const raw = this.ascVal.value.trim();
+      const v = Number(raw);
+      if (raw !== '' && isFinite(v) && v >= 1) this.game.s.auto.ascendValue = v;
+      this.syncInputs();
     });
     ascCard.extra.append(h('div', { class: 'field' }, [h('span', { class: 'small muted', style: 'flex:none' }, '獲得する欠片が'), this.ascVal, h('span', { class: 'small muted', style: 'flex:none' }, '以上')]));
     this.syncInputs();
