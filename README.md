@@ -35,6 +35,19 @@ npm run preview
 `dist/` に出力されたファイルを任意の静的ホスティング（GitHub Pages など）に置けば、そのまま PWA として動きます。
 配信設定ができるホストでは、`/assets/*`（ファイル名にハッシュ付き）を `Cache-Control: public, max-age=31536000, immutable`、`index.html` と `sw.js` を `no-cache` にすると更新が確実に届きます。
 
+## GitHub Pages で公開する（スマホにアプリとして入れる）
+
+`main` に push すると、`.github/workflows/pages.yml` が自動でビルドして GitHub Pages に公開します。最初に一度だけ設定が必要です。
+
+1. リポジトリの Settings → Pages を開く
+2. 「Build and deployment」の Source を「GitHub Actions」にする
+3. Actions タブで「Deploy to GitHub Pages」を実行（または main に push）
+
+公開先は `https://<ユーザー名>.github.io/hitotsubu-uchu/` です。スマホでこの URL を開き、
+iPhone は Safari の共有ボタン→「ホーム画面に追加」、Android は Chrome のメニュー→「アプリをインストール」でアプリとして遊べます（一度開けばオフラインでも動きます）。
+
+※ 無料プランでは private リポジトリで Pages を使えません。その場合は Settings → General の一番下でリポジトリを public にしてください。
+
 ## スマホでの確認方法（同じ Wi-Fi）
 
 1. PC とスマホを同じ Wi-Fi に接続する

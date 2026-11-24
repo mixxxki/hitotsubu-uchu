@@ -3,6 +3,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
+  // GitHub Pages ではリポジトリ名のサブパスで配信する（ワークフローが BASE_PATH を渡す）
+  base: process.env.BASE_PATH ?? '/',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
@@ -25,7 +27,7 @@ export default defineConfig({
         orientation: 'portrait',
         background_color: '#07070C',
         theme_color: '#07070C',
-        id: '/',
+        id: 'hitotsubu-uchu',
         start_url: '.',
         scope: '.',
         icons: [
