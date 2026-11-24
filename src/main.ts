@@ -1,7 +1,4 @@
-import '@fontsource/jetbrains-mono/400.css';
-import '@fontsource/jetbrains-mono/500.css';
-import '@fontsource/m-plus-1p/400.css';
-import '@fontsource/m-plus-1p/700.css';
+import './fonts.css';
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { Game } from './core/game.ts';
@@ -15,6 +12,13 @@ const app = new App(game, document.getElementById('app')!);
 if (loadStatus.failed) {
   setTimeout(() => toast('セーブを読み込めなかったため新しく始めた（元のデータは端末内に退避済み）', '', 6000), 500);
 }
+
+let lastSaveWarn = 0;
+game.onSaveError = () => {
+  if (Date.now() - lastSaveWarn < 60000) return;
+  lastSaveWarn = Date.now();
+  toast('保存できなかった（端末の空き容量やプライベートモードを確認）。設定からエクスポートしておくと安心。', '', 6000);
+};
 
 const report = game.applyOffline();
 if (report) app.showOffline(report);

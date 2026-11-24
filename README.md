@@ -33,6 +33,7 @@ npm run preview
 ```
 
 `dist/` に出力されたファイルを任意の静的ホスティング（GitHub Pages など）に置けば、そのまま PWA として動きます。
+配信設定ができるホストでは、`/assets/*`（ファイル名にハッシュ付き）を `Cache-Control: public, max-age=31536000, immutable`、`index.html` と `sw.js` を `no-cache` にすると更新が確実に届きます。
 
 ## スマホでの確認方法（同じ Wi-Fi）
 
@@ -117,6 +118,24 @@ npm run sim -- 2
 - 最初のビッグバン: 約50分（人が遊ぶと1〜2時間）
 - 初回の次元上昇: 約5日（挑戦12「真空」が関門）
 - 多元宇宙の解放: 約80日（次元上昇後は欠片が少しずつ伸びる）
+
+## フォント（文言を追加したとき）
+
+本文フォント M PLUS 1p は、ゲーム内で使う文字だけに絞った woff2（`src/assets/fonts/`、各約75KB）を同梱しています。新しい漢字などを追加したときは作り直してください（Python と fonttools が必要）。
+
+```bash
+pip install fonttools brotli
+```
+
+```bash
+python scripts/subset_fonts.py
+```
+
+```bash
+npm run fonts
+```
+
+作り直さなくても動きますが、追加した文字だけ端末の標準フォントで表示されます。
 
 ## 多元宇宙（3層目）を作るとき
 

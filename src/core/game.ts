@@ -129,8 +129,11 @@ export class Game {
     this.mods = computeMods(this.s);
   }
 
+  /** 保存に失敗したときに呼ばれる（UI が設定する） */
+  onSaveError: (() => void) | null = null;
+
   save(): void {
-    saveLocal(this.s);
+    if (!saveLocal(this.s)) this.onSaveError?.();
   }
 
   replace(s: GameState): void {

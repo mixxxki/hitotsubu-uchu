@@ -66,12 +66,15 @@ export function deserialize(json: string): GameState {
   return s;
 }
 
-export function saveLocal(s: GameState, now = Date.now()): void {
+/** 保存に成功したら true */
+export function saveLocal(s: GameState, now = Date.now()): boolean {
   s.lastSave = now;
   try {
     localStorage.setItem(SAVE_KEY, serialize(s));
+    return true;
   } catch {
-    /* 容量超過など */
+    // 容量超過・プライベートモードなど
+    return false;
   }
 }
 
