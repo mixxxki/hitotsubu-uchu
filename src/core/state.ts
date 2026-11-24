@@ -4,6 +4,7 @@ import { CHALLENGES } from '../data/challenges.ts';
 
 export type Notation = 'sci' | 'suffix';
 export type AutoBBMode = 'constants' | 'time' | 'multiple';
+export type AutoAscMode = 'shards' | 'time' | 'multiple';
 
 export interface DimGenState {
   amount: Decimal;
@@ -68,7 +69,9 @@ export interface GameState {
   energy: Decimal;
   dimUpgrades: Set<string>;
   dimRepeat: number;
-  ascRunTotalShards: Decimal;
+  ascRunTotalShards: Decimal; // 未使用（互換のため残す）
+  ascStart: number; // 次元上昇周回の開始 time
+  lastAscGain: Decimal;
 
   // ---- 多元宇宙（枠） ----
   multiverse: { unlocked: boolean; count: number; potential: Decimal; upgrades: Set<string> };
@@ -87,7 +90,10 @@ export interface GameState {
     bigBangHold: boolean;
     dim: boolean;
     ascend: boolean;
-    ascendValue: number; // 獲得する欠片がこの値以上
+    ascendMode: AutoAscMode;
+    ascendValues: Record<AutoAscMode, number>;
+    /** 次元装置の段ごとの自動購入 */
+    dimGens: boolean[];
   };
   autoAcc: number;
 
@@ -147,6 +153,8 @@ export function newState(now = Date.now()): GameState {
     dimUpgrades: new Set(),
     dimRepeat: 0,
     ascRunTotalShards: new Decimal(0),
+    ascStart: 0,
+    lastAscGain: new Decimal(0),
     multiverse: { unlocked: false, count: 0, potential: new Decimal(0), upgrades: new Set() },
     autoUnlocked: new Set(),
     auto: {
@@ -157,9 +165,11 @@ export function newState(now = Date.now()): GameState {
       bigBangMode: 'time',
       bigBangValues: { constants: 1000, time: 300, multiple: 1 },
       bigBangHold: true,
-      dim: true,
+      dim: false,
       ascend: false,
-      ascendValue: 2,
+      ascendMode: 'multiple',
+      ascendValues: { shards: 10, time: 3600, multiple: 1 },
+      dimGens: DIM_GENERATORS.map(() => true),
     },
     autoAcc: 0,
     settings: { notation: 'sci', floaters: true },

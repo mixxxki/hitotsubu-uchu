@@ -5,6 +5,7 @@ import { LAW_TREE, LAW_REPEAT, type LawNode } from '../../data/lawTree.ts';
 import { CHALLENGES } from '../../data/challenges.ts';
 import { DIM_UPGRADES, DIM_REPEAT } from '../../data/dimension.ts';
 import { BALANCE } from '../../data/balance.ts';
+import { MULTIVERSE_UPGRADES } from '../../data/multiverse.ts';
 import {
   canBigBang, constantsGain, bigBangRequirement, nextConstantAt, canAscend, shardsGain, lawRepeatCost, dimRepeatCost, multiverseReady,
 } from '../../core/formulas.ts';
@@ -23,6 +24,8 @@ export function bigBangFlash(): void {
   f.animate([{ opacity: 0.9 }, { opacity: 0 }], { duration: 900, easing: 'ease-out' }).onfinish = () => f.remove();
   document.querySelector('.core')?.animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 700, easing: 'cubic-bezier(0.2,0.8,0.2,1)' });
 }
+
+const DIM_UPGRADES_SORTED = [...DIM_UPGRADES].sort((a, b) => a.cost - b.cost);
 
 type Sub = 'bb' | 'law' | 'chal' | 'dim' | 'multi';
 const ROW_H = 88;
@@ -347,18 +350,30 @@ export class CosmosView {
     this.ascBtn.addEventListener('click', () => {
       const s = this.game.s;
       if (!canAscend(s)) return;
-      confirmSheet('次元上昇', `粒子・装置・強化・宇宙定数・法則の木・挑戦をリセットし、次元の欠片 ${fmt(shardsGain(s, this.game.mods))} を得る。`, '上昇する', 'purple', () => {
+      const reset = ['粒子', '生成装置', '強化', '宇宙定数'];
+      if (!s.dimUpgrades.has('d_tree')) reset.push('法則の木');
+      if (!s.dimUpgrades.has('d_chal')) reset.push('挑戦の達成');
+      const keep = ['次元装置', '次元エネルギー', '次元の刻印', '実績', '自動化'];
+      if (s.dimUpgrades.has('d_tree')) keep.push('法則の木');
+      if (s.dimUpgrades.has('d_chal')) keep.push('挑戦の達成');
+      confirmSheet('次元上昇', `次元の欠片 ${fmt(shardsGain(s, this.game.mods))} を得る。リセット：${reset.join('・')}。残る：${keep.join('・')}。`, '上昇する', 'purple', () => {
         if (ascend(this.game.s, this.game.mods)) this.game.refresh();
       });
     });
-    const labels = ['次元の欠片', '欠片（累計）', '次元エネルギー', 'エネルギーの倍率', '次元上昇回数'];
+    const labels = ['次元の欠片', '欠片（累計）', '次元エネルギー', 'エネルギー→粒子の生産', 'エネルギー→宇宙定数の獲得', 'エネルギー→欠片の獲得', '次元上昇回数'];
     this.dimStats = labels.map(() => h('span', {}));
     this.dimBody = h('div', {}, [
       h('div', { class: 'card purple' }, [h('div', { class: 'small muted' }, '獲得する次元の欠片'), this.ascGain, this.ascReq, h('div', { class: 'bar purple' }, [this.ascBar]), this.ascBtn]),
       h('div', { class: 'card' }, labels.map((l, i) => h('div', { class: 'kv' }, [h('span', {}, l), this.dimStats[i]]))),
       h('div', { class: 'section-title' }, '次元の刻印（次元上昇でも消えない）'),
     ]);
-    DIM_UPGRADES.forEach((u) => {
+    this.dimRepInfo = h('div', { class: 'small muted' });
+    this.dimRepBtn = h('button', { class: 'btn purple', type: 'button' });
+    this.dimRepBtn.addEventListener('click', () => {
+      if (buyDimRepeat(this.game.s)) this.game.refresh();
+    });
+    this.dimBody.append(h('div', { class: 'card purple' }, [h('div', { class: 'auto-row' }, [h('div', { class: 'grow' }, [h('h3', {}, DIM_REPEAT.name), h('div', { class: 'small muted' }, DIM_REPEAT.desc), this.dimRepInfo]), this.dimRepBtn])]));
+    DIM_UPGRADES_SORTED.forEach((u) => {
       const b = h('button', { class: 'btn purple', type: 'button' });
       b.addEventListener('click', () => {
         if (buyDimUpgrade(this.game.s, u.id)) this.game.refresh();
@@ -366,12 +381,6 @@ export class CosmosView {
       this.dimUpgBtns.push(b);
       this.dimBody.append(h('div', { class: 'card' }, [h('div', { class: 'auto-row' }, [h('div', { class: 'grow' }, [h('h3', {}, u.name), h('div', { class: 'small muted' }, u.desc)]), b])]));
     });
-    this.dimRepInfo = h('div', { class: 'small muted' });
-    this.dimRepBtn = h('button', { class: 'btn purple', type: 'button' });
-    this.dimRepBtn.addEventListener('click', () => {
-      if (buyDimRepeat(this.game.s)) this.game.refresh();
-    });
-    this.dimBody.append(h('div', { class: 'card purple' }, [h('div', { class: 'auto-row' }, [h('div', { class: 'grow' }, [h('h3', {}, DIM_REPEAT.name), h('div', { class: 'small muted' }, DIM_REPEAT.desc), this.dimRepInfo]), this.dimRepBtn])]));
     this.dimBody.append(h('p', { class: 'small muted' }, '次元装置は「生成」タブに並ぶ。'));
     p.append(this.dimLocked, this.dimBody);
     return p;
@@ -400,7 +409,9 @@ export class CosmosView {
     ]);
     if (s.multiverse.unlocked) card.append(h('div', { class: 'kv' }, [h('span', {}, '可能性'), h('span', {}, fmt(s.multiverse.potential))]));
     const btn = h('button', { class: 'btn purple fill block', type: 'button', style: 'margin-top:12px' }, ready ? `多元化（可能性 +${fmt(potentialGain(s))}）` : '未解放');
-    btn.disabled = !ready;
+    const empty = MULTIVERSE_UPGRADES.length === 0;
+    btn.disabled = !ready || empty;
+    if (ready && empty) btn.textContent = '準備中（今後のアップデートで追加）';
     btn.addEventListener('click', () =>
       confirmSheet('多元化', '次元の層を含むほぼすべてをリセットする（実績と自動化の解放は残る）。この層の中身は今後のアップデートで追加される。', '多元化する', 'purple', () => {
         if (multiverse(this.game.s)) this.game.refresh();
@@ -503,12 +514,19 @@ export class CosmosView {
         if (!show) break;
         const ok = canAscend(s);
         setText(this.ascGain, ok ? `+${fmt(shardsGain(s, mods))}` : '—');
-        setText(this.ascReq, `この周回の粒子 ${fmt(s.runTotal)} / ${fmt(BALANCE.ascendReq)}`);
-        setBar(this.ascBar, ok ? 1 : s.runTotal.max(1).log10().toNumber() / 100);
+        if (ok && s.lastAscGain.gt(0)) {
+          const r = shardsGain(s, mods).div(s.lastAscGain);
+          setText(this.ascReq, `前回の獲得（${fmt(s.lastAscGain)}）の ${fmt(r, 2)} 倍・この次元上昇周回 ${fmtTime(s.time - s.ascStart)}`);
+          setBar(this.ascBar, Math.min(1, r.toNumber() / 2));
+        } else {
+          setText(this.ascReq, `この周回の粒子 ${fmt(s.runTotal)} / ${fmt(BALANCE.ascendReq)}`);
+          setBar(this.ascBar, ok ? 1 : s.runTotal.max(1).log10().toNumber() / 100);
+        }
         setDisabled(this.ascBtn, !ok);
-        const st = [fmt(s.shards), fmt(s.shardsEver), fmt(s.energy, 1), `×${fmt(mods.energyMult, 2)}`, String(s.ascensions)];
+        const e1 = s.energy.add(1);
+        const st = [fmt(s.shards), fmt(s.shardsEver), fmt(s.energy, 1), `×${fmt(mods.energyMult, 2)}`, `×${fmt(e1.pow(BALANCE.energyConstExp), 2)}`, `×${fmt(e1.pow(BALANCE.energyShardExp), 2)}`, String(s.ascensions)];
         st.forEach((v, i) => setText(this.dimStats[i], v));
-        DIM_UPGRADES.forEach((u, i) => {
+        DIM_UPGRADES_SORTED.forEach((u, i) => {
           const b = this.dimUpgBtns[i];
           const owned = s.dimUpgrades.has(u.id);
           setText(b, owned ? '取得済み' : `${fmt(u.cost)} 欠片`);

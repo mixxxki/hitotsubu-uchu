@@ -1,8 +1,8 @@
 // 自動化タブ
 import type { Game } from '../../core/game.ts';
 import { AUTOMATIONS, type AutoId } from '../../data/automation.ts';
-import { GENERATORS } from '../../data/generators.ts';
-import type { AutoBBMode } from '../../core/state.ts';
+import { GENERATORS, DIM_GENERATORS } from '../../data/generators.ts';
+import type { AutoBBMode, AutoAscMode } from '../../core/state.ts';
 import { h, setText, toggle } from '../dom.ts';
 import { fmt } from '../format.ts';
 
@@ -16,6 +16,8 @@ export class AutomationView {
   private bbMode!: HTMLSelectElement;
   private ascVal!: HTMLInputElement;
   private holdSw!: HTMLButtonElement;
+  private ascMode!: HTMLSelectElement;
+  private dimBtns: HTMLButtonElement[] = [];
 
   private game: Game;
 
@@ -85,14 +87,32 @@ export class AutomationView {
     );
 
     const ascCard = this.cards.get('autoAscend')!;
+    this.ascMode = h('select', { 'aria-label': '条件' }) as HTMLSelectElement;
+    const aopts: Array<[AutoAscMode, string]> = [['multiple', '獲得が累計の◯倍'], ['time', '◯秒たったら'], ['shards', '獲得欠片が◯以上']];
+    for (const [v, l] of aopts) this.ascMode.append(h('option', { value: v }, l));
+    this.ascMode.addEventListener('change', () => {
+      this.game.s.auto.ascendMode = this.ascMode.value as AutoAscMode;
+      this.syncInputs();
+    });
     this.ascVal = h('input', { type: 'number', inputmode: 'decimal', min: '1', step: 'any', 'aria-label': '欠片' }) as HTMLInputElement;
     this.ascVal.addEventListener('change', () => {
       const raw = this.ascVal.value.trim();
       const v = Number(raw);
-      if (raw !== '' && isFinite(v) && v >= 1) this.game.s.auto.ascendValue = v;
+      if (raw !== '' && isFinite(v) && v > 0) this.game.s.auto.ascendValues[this.game.s.auto.ascendMode] = v;
       this.syncInputs();
     });
-    ascCard.extra.append(h('div', { class: 'field' }, [h('span', { class: 'small muted', style: 'flex:none' }, '獲得する欠片が'), this.ascVal, h('span', { class: 'small muted', style: 'flex:none' }, '以上')]));
+    ascCard.extra.append(h('div', { class: 'field' }, [this.ascMode, this.ascVal]));
+    const dimCard = this.cards.get('autoDim')!;
+    const dg = h('div', { class: 'mini-gens' });
+    DIM_GENERATORS.forEach((d, i) => {
+      const b = h('button', { type: 'button' }, d.name);
+      b.addEventListener('click', () => {
+        this.game.s.auto.dimGens[i] = !this.game.s.auto.dimGens[i];
+      });
+      this.dimBtns.push(b);
+      dg.append(b);
+    });
+    dimCard.extra.append(dg);
     this.syncInputs();
   }
 
@@ -128,7 +148,8 @@ export class AutomationView {
     const a = this.game.s.auto;
     this.bbMode.value = a.bigBangMode;
     this.bbVal.value = String(a.bigBangValues[a.bigBangMode]);
-    this.ascVal.value = String(a.ascendValue);
+    this.ascMode.value = a.ascendMode;
+    this.ascVal.value = String(a.ascendValues[a.ascendMode]);
   }
 
   update(): void {
@@ -147,6 +168,7 @@ export class AutomationView {
     setText(this.tapRate, fmt(this.game.mods.autoTapRate, 1));
     this.genBtns.forEach((b, i) => toggle(b, 'on', s.auto.gens[i]));
     toggle(this.holdSw, 'on', s.auto.bigBangHold);
+    this.dimBtns.forEach((b, i) => toggle(b, 'on', s.auto.dimGens[i]));
     this.seenUnlocked = s.autoUnlocked.size;
   }
 }

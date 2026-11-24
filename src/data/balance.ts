@@ -45,16 +45,16 @@ export const BALANCE = {
   ascendReq: 1e100,
   /** 次元の欠片 = floor(ascendGainMult * 10^((log10(粒子) - 100) / ascendGainDiv)) */
   ascendGainMult: 10,
-  ascendGainDiv: 22,
+  ascendGainDiv: 26,
   /** 次元エネルギーの効果: 粒子生産 ×(1+E)^energyExp */
-  energyExp: 0.6,
+  energyExp: 0.5,
   /** 次元エネルギーの効果: 宇宙定数獲得 ×(1+E)^energyConstExp */
   energyConstExp: 0.15,
   /** 次元エネルギーの効果: 次元の欠片獲得 ×(1+E)^energyShardExp */
   energyShardExp: 0.02,
 
   // ---- 多元宇宙（枠のみ） ----
-  multiverseReqShardsEver: 1e14,
+  multiverseReqShardsEver: 1e13,
   multiverseReqAscensions: 10,
 
   // ---- 放置 ----

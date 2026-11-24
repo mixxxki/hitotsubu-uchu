@@ -195,6 +195,8 @@ export function ascend(s: GameState, m: Mods = computeMods(s)): boolean {
   s.shardsEver = s.shardsEver.add(g);
   s.ascRunTotalShards = s.ascRunTotalShards.add(g);
   s.ascensions++;
+  s.lastAscGain = g;
+  s.ascStart = s.time;
   const startC = s.dimUpgrades.has('d_const') ? 100 : 0;
   s.constants = new Decimal(startC);
   s.constantsEver = new Decimal(startC);

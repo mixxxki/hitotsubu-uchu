@@ -30,17 +30,21 @@ export const DIM_UPGRADES: DimUpgradeDef[] = [
   { id: 'd_cgain', name: '定数の奔流', desc: '宇宙定数の獲得×10', cost: 25, effect: { type: 'constGain', mult: 10 } },
   { id: 'd_dim', name: '次元の厚み', desc: '次元装置の生産×3', cost: 60, effect: { type: 'dimGenMult', mult: 3 } },
   { id: 'd_off', name: '時の外側', desc: '放置上限+72時間', cost: 150, effect: { type: 'offlineHours', add: 72 } },
-  { id: 'd_exp', name: '次元の浸透', desc: '次元エネルギー効果の指数+0.15', cost: 400, effect: { type: 'energyExp', add: 0.15 } },
+  { id: 'd_exp', name: '次元の浸透', desc: '次元エネルギー効果の指数+0.1', cost: 400, effect: { type: 'energyExp', add: 0.1 } },
   { id: 'd_shard', name: '欠片の共鳴', desc: '次元の欠片の獲得×3', cost: 2000, effect: { type: 'shardGain', mult: 3 } },
-  { id: 'd_dim2', name: '次元の深み', desc: '次元装置の生産×10', cost: 2e4, effect: { type: 'dimGenMult', mult: 10 } },
-  { id: 'd_prod2', name: '超越の視点', desc: 'すべての生産×1e10', cost: 2e5, effect: { type: 'prodMult', mult: 1e10 } },
+  { id: 'd_dim2', name: '次元の深み', desc: '次元装置の生産×3', cost: 2e4, effect: { type: 'dimGenMult', mult: 3 } },
+  { id: 'd_prod2', name: '超越の視点', desc: 'すべての生産×1e4', cost: 2e5, effect: { type: 'prodMult', mult: 1e4 } },
   { id: 'd_dim3', name: '次元の螺旋', desc: '次元装置の生産×3', cost: 1e6, effect: { type: 'dimGenMult', mult: 3 } },
   { id: 'd_shard2', name: '欠片の結晶', desc: '次元の欠片の獲得×2', cost: 1e7, effect: { type: 'shardGain', mult: 2 } },
   { id: 'd_law', name: '高次の法則', desc: '宇宙定数倍率の指数+0.03', cost: 3e7, effect: { type: 'constExp', add: 0.03 } },
   { id: 'd_prod3', name: '多層の視点', desc: 'すべての生産×1e5', cost: 1e8, effect: { type: 'prodMult', mult: 1e5 } },
-  { id: 'd_exp2', name: '次元の浸透II', desc: '次元エネルギー効果の指数+0.03', cost: 3e8, effect: { type: 'energyExp', add: 0.03 } },
+  { id: 'd_exp2', name: '次元の浸透II', desc: '次元エネルギー効果の指数+0.05', cost: 3e8, effect: { type: 'energyExp', add: 0.05 } },
   { id: 'd_shard3', name: '欠片の奔流', desc: '次元の欠片の獲得×2', cost: 1e9, effect: { type: 'shardGain', mult: 2 } },
   { id: 'd_dim4', name: '永遠の拡張', desc: '次元装置の生産×5', cost: 3e9, effect: { type: 'dimGenMult', mult: 5 } },
+  { id: 'd_fold', name: '時空の折り目', desc: '次元装置の生産×3', cost: 1e10, effect: { type: 'dimGenMult', mult: 3 } },
+  { id: 'd_law2', name: '定数の深淵', desc: '宇宙定数倍率の指数+0.05', cost: 3e10, effect: { type: 'constExp', add: 0.05 } },
+  { id: 'd_rain', name: '欠片の雨', desc: '次元の欠片の獲得×3', cost: 1e11, effect: { type: 'shardGain', mult: 3 } },
+  { id: 'd_omen', name: '多元の予感', desc: 'すべての生産×1e8', cost: 1e12, effect: { type: 'prodMult', mult: 1e8 } },
 ];
 
 /** 繰り返し購入: 次元エネルギー獲得×2 */
@@ -49,6 +53,6 @@ export const DIM_REPEAT = {
   name: '次元の共鳴',
   desc: 'レベルごとに次元エネルギーの生成×2',
   baseCost: 5,
-  costGrowth: 3,
+  costGrowth: 5,
   mult: 2,
 };

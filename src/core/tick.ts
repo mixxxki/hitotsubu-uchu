@@ -98,10 +98,13 @@ export function runAutomation(s: GameState, m: Mods): Mods {
     if (changed) m = computeMods(s);
   }
   if (u.has('autoDim') && s.auto.dim) {
-    for (let i = s.dimGens.length - 1; i >= 0; i--) buyDimGen(s, i, 'max');
+    for (let i = s.dimGens.length - 1; i >= 0; i--) if (s.auto.dimGens[i]) buyDimGen(s, i, 'max');
   }
   if (u.has('autoAscend') && s.auto.ascend && canAscend(s)) {
-    if (shardsGain(s, m).gte(s.auto.ascendValue)) {
+    const g = shardsGain(s, m);
+    const v = s.auto.ascendValues[s.auto.ascendMode];
+    const ok = s.auto.ascendMode === 'shards' ? g.gte(v) : s.auto.ascendMode === 'time' ? s.time - s.ascStart >= v : g.gte(s.shardsEver.max(1).mul(v));
+    if (ok) {
       ascend(s, m);
       return computeMods(s);
     }
