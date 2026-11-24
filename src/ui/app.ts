@@ -379,6 +379,8 @@ export class App {
         return;
       }
       this.game.hardReset();
+      setNotation(this.game.s.settings.notation);
+      this.views.auto.syncInputs();
       closeSheet();
       toast('最初からやり直す');
     });

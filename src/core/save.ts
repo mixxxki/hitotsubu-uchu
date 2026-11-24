@@ -1,6 +1,7 @@
 // 保存・読み込み・エクスポート/インポート
 import Decimal from 'break_eternity.js';
 import { type GameState, newState, SAVE_VERSION } from './state.ts';
+import { CHALLENGES } from '../data/challenges.ts';
 
 export const SAVE_KEY = 'hitotsubu-uchu-save';
 
@@ -58,7 +59,7 @@ export function deserialize(json: string): GameState {
   const base = newState();
   // null を許す項目
   const s = merge(base, raw);
-  s.challenge = typeof raw.challenge === 'number' ? raw.challenge : null;
+  s.challenge = typeof raw.challenge === 'number' && raw.challenge >= 0 && raw.challenge < CHALLENGES.length ? raw.challenge : null;
   const star = raw.star as GameState['star'];
   s.star = star && typeof star.id === 'number' ? star : null;
   s.version = SAVE_VERSION;
@@ -74,12 +75,23 @@ export function saveLocal(s: GameState, now = Date.now()): void {
   }
 }
 
+/** 読み込みに失敗したセーブを退避したとき true（UI で知らせる） */
+export const loadStatus = { failed: false };
+
 export function loadLocal(): GameState | null {
+  let j: string | null = null;
   try {
-    const j = localStorage.getItem(SAVE_KEY);
+    j = localStorage.getItem(SAVE_KEY);
     if (!j) return null;
     return deserialize(j);
   } catch {
+    // 新しい版のセーブや壊れたセーブを、上書きされる前に退避する
+    try {
+      if (j) localStorage.setItem(SAVE_KEY + '-corrupt', j);
+    } catch {
+      /* noop */
+    }
+    loadStatus.failed = true;
     return null;
   }
 }

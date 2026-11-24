@@ -171,7 +171,7 @@ export function computeMods(s: GameState): Mods {
       for (const e of node.effects) if (e.type === 'unlockChallenges') for (let i = e.from; i < e.to; i++) challengesUnlocked[i] = true;
     }
   }
-  if (s.lawRepeat > 0 && !hasRule(s, 'noLaws')) lawProd = lawProd.mul(Decimal.pow(LAW_REPEAT.mult, s.lawRepeat));
+  if (s.lawRepeat > 0 && !hasRule(s, 'noLaws') && s.laws.has(LAW_REPEAT.req)) lawProd = lawProd.mul(Decimal.pow(LAW_REPEAT.mult, s.lawRepeat));
 
   const costGrowthAdd = { v: 0 };
   let chalProd = 1;

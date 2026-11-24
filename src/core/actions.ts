@@ -121,6 +121,10 @@ function resetRun(s: GameState, m: Mods): void {
   s.upgrades = keep;
   s.lastBoughtGen = -1;
   s.runStart = s.time;
+  if (s.star) {
+    s.star = null;
+    scheduleStar(s, m);
+  }
   s.buffUntil = 0;
   s.buffMult = 1;
 }
@@ -286,8 +290,11 @@ export { LAW_TREE };
 export function respecLaws(s: GameState): Decimal {
   let refund = new Decimal(0);
   for (const n of LAW_TREE) if (s.laws.has(n.id)) refund = refund.add(n.cost);
+  // 無限の法則に使った分も返す
+  for (let i = 0; i < s.lawRepeat; i++) refund = refund.add(Decimal.pow(LAW_REPEAT.costGrowth, i).mul(LAW_REPEAT.baseCost));
   if (refund.lte(0)) return refund;
   s.laws = new Set();
+  s.lawRepeat = 0;
   s.constants = s.constants.add(refund);
   if (s.challenge !== null) s.challenge = null;
   resetRun(s, computeMods(s));
@@ -312,7 +319,7 @@ export function swapExclusive(s: GameState, id: string): boolean {
 export function buyAllLaws(s: GameState): number {
   let n = 0;
   for (let guard = 0; guard < 100; guard++) {
-    const c = LAW_TREE.filter((x) => lawAvailable(s, x) && s.constants.gte(x.cost)).sort((a, b) => a.cost - b.cost)[0];
+    const c = LAW_TREE.filter((x) => !x.excl && lawAvailable(s, x) && s.constants.gte(x.cost)).sort((a, b) => a.cost - b.cost)[0];
     if (!c || !buyLaw(s, c)) break;
     n++;
   }

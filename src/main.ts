@@ -5,11 +5,16 @@ import '@fontsource/m-plus-1p/700.css';
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { Game } from './core/game.ts';
-import { SAVE_KEY } from './core/save.ts';
+import { SAVE_KEY, loadStatus } from './core/save.ts';
+import { toast } from './ui/overlay.ts';
 import { App } from './ui/app.ts';
 
 const game = new Game();
 const app = new App(game, document.getElementById('app')!);
+
+if (loadStatus.failed) {
+  setTimeout(() => toast('セーブを読み込めなかったため新しく始めた（元のデータは端末内に退避済み）', '', 6000), 500);
+}
 
 const report = game.applyOffline();
 if (report) app.showOffline(report);

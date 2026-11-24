@@ -494,7 +494,7 @@ export class CosmosView {
           setDisabled(card.btn, !unlocked || (s.challenge !== null && !active));
           const b = s.challengeBest[i] ?? 0;
           setText(card.best, b > 0 ? `最高到達 1e${Math.floor(b)}${done ? '' : `（目標 1e${Math.round(Math.log10(c.goal))}）`}` : '');
-          const prog = active ? (s.runTotal.max(1).log10().toNumber() - 15) / (Math.log10(c.goal) - 15) : done ? 1 : (b - 15) / (Math.log10(c.goal) - 15);
+          const prog = active ? (s.runTotal.max(1).log10().toNumber() - 10) / (Math.log10(c.goal) - 10) : done ? 1 : (b - 10) / (Math.log10(c.goal) - 10);
           setBar(card.prog, prog);
         });
         break;

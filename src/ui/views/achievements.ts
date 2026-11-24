@@ -31,7 +31,7 @@ export class AchievementsView {
             h('div', { class: 'sheet-icon', html: KIND_ICONS.ach, style: `color:${got ? 'var(--star)' : 'var(--dim)'}` }),
             h('h2', {}, a.name),
             h('p', { class: 'desc' }, a.desc),
-            h('div', { class: got ? 'starc' : 'muted' }, got ? '達成済み：全体倍率+1%' : '未達成'),
+            h('div', { class: got ? 'starc' : 'muted' }, got ? `達成済み：全体倍率+${fmt(this.game.mods.achPer * 100, 1)}%` : `未達成（達成で全体倍率+${fmt(this.game.mods.achPer * 100, 1)}%）`),
           ]),
         );
       });
