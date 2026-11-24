@@ -1,3 +1,4 @@
+import Decimal from 'break_eternity.js';
 // 画面全体の組み立てと描画ループ
 import type { Game, OfflineReport } from '../core/game.ts';
 import { tap, catchStar } from '../core/actions.ts';
@@ -18,6 +19,7 @@ import { AutomationView } from './views/automation.ts';
 import { AchievementsView } from './views/achievements.ts';
 import { CosmosView } from './views/cosmos.ts';
 import { drawBackground } from './background.ts';
+import { starBurst, prestigeEffect } from './effects.ts';
 
 type TabId = 'gen' | 'upg' | 'auto' | 'ach' | 'cosmos';
 
@@ -33,6 +35,11 @@ export class App {
   private starEl: HTMLButtonElement | null = null;
   private starAnim: Animation | null = null;
   private starId = -1;
+  private nucleus: SVGElement | null = null;
+  private ripples: SVGElement[] = [];
+  private rippleIdx = 0;
+  private lastStarPos = { x: 0, y: 0 };
+  private lastDigits = -1;
   private slowT = 0;
   private viewT = 0;
   private achSeen: number;
@@ -106,6 +113,8 @@ export class App {
     root.append(top, this.chips, stage, panel);
     document.body.append(tabs);
     // 核の軌道アニメーション（transform のみ）
+    this.nucleus = this.core.querySelector('.nucleus');
+    this.ripples = Array.from(this.core.querySelectorAll('.ripple'));
     const o1 = this.core.querySelector('.orbit') as SVGGElement | null;
     const o2 = this.core.querySelector('.orbit2') as SVGGElement | null;
     o1?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: 24000, iterations: Infinity });
@@ -133,6 +142,10 @@ export class App {
     const { s, mods } = this.game;
     const v = tap(s, mods);
     this.core.animate([{ transform: 'scale(0.94)' }, { transform: 'scale(1)' }], { duration: 160, easing: 'ease-out' });
+    this.nucleus?.animate([{ transform: 'scale(1.15)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
+    const rp = this.ripples[this.rippleIdx];
+    this.rippleIdx = (this.rippleIdx + 1) % this.ripples.length;
+    rp?.animate([{ transform: 'scale(0.45)', opacity: 0.5 }, { transform: 'scale(1.05)', opacity: 0 }], { duration: 520, easing: 'ease-out' });
     if (s.settings.floaters) floatText(x, y, hasRule(s, 'noTap') ? '0' : `+${fmtSmart(v)}`);
   }
 
@@ -158,13 +171,15 @@ export class App {
       e.preventDefault();
       if (!this.game.s.star) return;
       const r = el.getBoundingClientRect();
+      this.lastStarPos = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      starBurst(this.lastStarPos.x, this.lastStarPos.y);
       catchStar(this.game.s, this.game.mods, false);
       this.game.refresh();
-      floatText(r.left + r.width / 2, r.top, '流れ星', true);
       this.removeStar();
     });
     document.body.append(el);
     this.starEl = el;
+    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400 });
     this.starAnim = el.animate(
       [
         { transform: `translate(${x0}px, ${y0}px)${flip}` },
@@ -192,14 +207,23 @@ export class App {
           break;
         }
         case 'starCaught':
-          if (e.kind === 'buff') toast(`流れ星：${e.duration?.toFixed(0)}秒間 生産×${fmt(e.mult ?? 1, 1)}`, 'star');
-          else toast(`流れ星：粒子 +${fmt(e.amount!)}`, 'star');
+          if (e.auto && this.starEl) {
+            const r = this.starEl.getBoundingClientRect();
+            this.lastStarPos = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+            starBurst(this.lastStarPos.x, this.lastStarPos.y);
+          }
+          if (e.kind === 'buff') {
+            toast(`流れ星：${e.duration?.toFixed(0)}秒間 生産×${fmt(e.mult ?? 1, 1)}`, 'star');
+            floatText(this.lastStarPos.x, this.lastStarPos.y, `×${fmt(e.mult ?? 1, 1)}`, true);
+          } else floatText(this.lastStarPos.x, this.lastStarPos.y, `+${fmt(e.amount!)}`, true);
           if (e.auto) this.removeStar();
           break;
         case 'bigBang':
+          prestigeEffect('#A78BFA', 900);
           toast(e.challengeDone !== null ? `挑戦「${CHALLENGES[e.challengeDone].name}」達成！ 宇宙定数 +${fmt(e.gain)}` : `ビッグバン！ 宇宙定数 +${fmt(e.gain)}`, 'purple', 3200);
           break;
         case 'ascend':
+          prestigeEffect('#A78BFA', 1600);
           toast(`次元上昇！ 次元の欠片 +${fmt(e.gain)}`, 'purple', 3600);
           break;
         case 'autoUnlocked': {
@@ -227,12 +251,28 @@ export class App {
     if (r.ascensions > 0) rows.push(kv('次元上昇', `${r.ascensions}回`));
     if (r.shardsGained.gt(0)) rows.push(kv('次元の欠片', `+${fmt(r.shardsGained)}`));
     if (r.achievements > 0) rows.push(kv('解除した実績', `${r.achievements}個`));
+    const bigNum = h('div', { class: 'big-num lime', style: 'margin-bottom:8px;display:inline-block;transform-origin:left center' }, '+0');
+    // 対数スケールで数え上げる
+    const target = r.gained.max(1).log10().toNumber();
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / 800);
+      const e = 1 - Math.pow(1 - k, 3);
+      bigNum.textContent = k >= 1 ? `+${fmt(r.gained)}` : `+${fmt(Decimal.pow(10, target * e))}`;
+      if (k < 1 && bigNum.isConnected) requestAnimationFrame(step);
+      else bigNum.animate([{ transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
+    };
+    requestAnimationFrame(step);
+    ok.addEventListener('click', () => {
+      this.amountNum.animate([{ transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' });
+      this.core.animate([{ transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' });
+    });
     openSheet(
       h('div', {}, [
         h('h2', {}, 'おかえりなさい'),
         h('p', { class: 'desc' }, '留守中も宇宙は広がっていた。'),
         h('div', { class: 'small muted' }, r.bigBangs > 0 ? '留守中に生まれた粒子（合計）' : '留守中に'),
-        h('div', { class: 'big-num lime', style: 'margin-bottom:8px' }, `+${fmt(r.gained)}`),
+        bigNum,
         ...rows,
         r.capped ? h('p', { class: 'small muted' }, `放置の上限は今 ${fmtTime(r.cap)}。法則の木・次元の刻印で延ばせる。`) : '',
         ok,
@@ -363,6 +403,9 @@ export class App {
   frame(dt: number): void {
     const { s, mods } = this.game;
     setText(this.amountNum, fmt(s.particles));
+    const dg = Math.floor(s.particles.max(1).log10().toNumber() / 3);
+    if (dg > this.lastDigits && this.lastDigits >= 0) this.amountNum.animate([{ transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' });
+    this.lastDigits = dg;
     const auto = s.auto.tap && !hasRule(s, 'noTap') ? mods.tapValue.mul(mods.autoTapRate) : null;
     setText(this.rate, `毎秒 +${fmt(auto ? mods.pps.add(auto) : mods.pps, 1)}　1タップ +${fmtSmart(mods.tapValue)}`);
 

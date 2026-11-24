@@ -1,10 +1,11 @@
 // 生成タブ: 生成装置カード（＋次元装置）
 import type { Game } from '../../core/game.ts';
 import { GENERATORS, DIM_GENERATORS, DIM_MILESTONE_EVERY, DIM_MILESTONE_MULT } from '../../data/generators.ts';
-import { genCost, nextMilestone, dimGenCost, dimGenMaxAffordable, dimGenRate, genMaxAffordable, D0 } from '../../core/formulas.ts';
+import { milestoneCount, genCost, nextMilestone, dimGenCost, dimGenMaxAffordable, dimGenRate, genMaxAffordable, D0 } from '../../core/formulas.ts';
 import { buyGen, genLocked, buyDimGen } from '../../core/actions.ts';
 import { h, setText, setBar, setDisabled, toggle } from '../dom.ts';
 import { GEN_ICONS } from '../icons.ts';
+import { floatText } from '../overlay.ts';
 import { fmt, fmtTime } from '../format.ts';
 import type Decimal from 'break_eternity.js';
 import { UPGRADES, type UpgradeDef } from '../../data/upgrades.ts';
@@ -76,8 +77,21 @@ export class GeneratorsView {
     GENERATORS.forEach((g, i) => {
       const r = this.makeRow(GEN_ICONS[g.icon], g.name, false);
       r.btn.addEventListener('click', () => {
+        const before = milestoneCount(game.s.gens[i]);
         const n = buyGen(game.s, game.mods, i, this.mode);
-        if (n > 0) game.refresh();
+        if (n > 0) {
+          game.refresh();
+          const r = this.rows[i];
+          r.btn.animate([{ transform: 'scale(0.95)' }, { transform: 'scale(1)' }], { duration: 160, easing: 'ease-out' });
+          r.cnt.animate([{ transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 200, easing: 'ease-out' });
+          const after = milestoneCount(game.s.gens[i]);
+          if (after > before) {
+            const b = r.btn.getBoundingClientRect();
+            floatText(b.left + b.width / 2, b.top, `生産×${fmt(Math.pow(game.mods.milestoneMult, after - before), 1)}`, true);
+            r.bar.parentElement?.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }], { duration: 600 });
+            r.root.animate([{ borderColor: '#C6F432' }, { borderColor: '#22202f' }], { duration: 700, easing: 'ease-out' });
+          }
+        }
       });
       this.rows.push(r);
       this.el.append(r.root);

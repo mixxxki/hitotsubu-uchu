@@ -3,7 +3,7 @@ import Decimal from 'break_eternity.js';
 import { type GameState, newState } from './state.ts';
 import { type Mods, computeMods, offlineCapSeconds } from './formulas.ts';
 import { tick, slowCheck } from './tick.ts';
-import { scheduleStar } from './actions.ts';
+import { scheduleStar, gainTracker } from './actions.ts';
 import { saveLocal, loadLocal } from './save.ts';
 import { setMuted } from './events.ts';
 import { BALANCE } from '../data/balance.ts';
@@ -42,7 +42,7 @@ export class Game {
     if (elapsed < 1) return null;
     const cap = offlineCapSeconds(this.mods);
     const secs = Math.min(elapsed, cap);
-    const before = s.allTotal;
+    gainTracker.total = new Decimal(0);
     const shards0 = s.shardsEver;
     const const0 = s.constantsAllTime;
     const bb0 = s.bigBangsEver;
@@ -81,7 +81,7 @@ export class Game {
       ascensions: s.ascensions - asc0,
       achievements: s.achievements.size - ach0,
       capped: elapsed > cap,
-      gained: s.allTotal.sub(before),
+      gained: gainTracker.total,
       shardsGained: s.shardsEver.sub(shards0),
       constantsGained: s.constantsAllTime.sub(const0),
     };

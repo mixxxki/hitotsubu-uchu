@@ -124,8 +124,10 @@ export class UpgradesView {
       if (st === 'affordable') aff++;
       if (st === 'owned') owned++;
       if (st !== this.status[i]) {
+        const was = this.status[i];
         this.status[i] = st;
         setClass(this.cells[i], `cell ${st}`);
+        if (st === 'owned' && was !== 'locked') this.cells[i].animate([{ transform: 'scale(0.8)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' });
       }
     });
     this.affordableCount = aff;

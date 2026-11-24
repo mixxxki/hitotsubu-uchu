@@ -49,6 +49,9 @@ export function coreSvg(): string {
   <g class="orbit"><circle r="78" fill="none" stroke="#C6F432" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="2 9"/><circle cx="78" cy="0" r="3" fill="#C6F432"/></g>
   <g class="orbit2"><circle r="58" fill="none" stroke="#A78BFA" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="1 6"/><circle cx="0" cy="-58" r="2.2" fill="#A78BFA"/></g>
   <circle r="40" fill="#C6F432" fill-opacity="0.08" stroke="#C6F432" stroke-opacity="0.5" stroke-width="1"/>
+  <circle class="ripple" r="96" fill="none" stroke="#C6F432" stroke-width="1.5" opacity="0"/>
+  <circle class="ripple" r="96" fill="none" stroke="#C6F432" stroke-width="1.5" opacity="0"/>
+  <circle class="ripple" r="96" fill="none" stroke="#C6F432" stroke-width="1.5" opacity="0"/>
   <circle class="nucleus" r="24" fill="#C6F432"/>
 </svg>`;
 }

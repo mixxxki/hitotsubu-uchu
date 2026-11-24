@@ -54,6 +54,7 @@ export function closeSheet(immediate = false): void {
     }, 240);
   }
   cb?.();
+  setTimeout(flushToasts, 260);
 }
 
 export function updateSheet(): void {
@@ -81,7 +82,25 @@ export function toastGroup(group: string, label: string, msg: string, tone: '' |
   groups.set(group, { el, n: 1, label, t: now });
 }
 
+const deferred: Array<() => void> = [];
+let holdUntil = 0;
+/** 一定時間トーストを保留する（大きな演出と重ねないため） */
+export function holdToasts(ms: number): void {
+  holdUntil = performance.now() + ms;
+  setTimeout(flushToasts, ms + 20);
+}
+function flushToasts(): void {
+  if (sheet || performance.now() < holdUntil) return;
+  const list = deferred.splice(0);
+  list.forEach((f) => f());
+}
+
 export function toast(msg: string, tone: '' | 'lime' | 'star' | 'purple' = '', ms = 2600): HTMLElement {
+  if (sheet || performance.now() < holdUntil) {
+    const placeholder = h('div', {});
+    if (deferred.length < 6) deferred.push(() => toast(msg, tone, ms));
+    return placeholder;
+  }
   if (!toastBox) {
     toastBox = h('div', { class: 'toasts', 'aria-live': 'polite' });
     document.body.append(toastBox);

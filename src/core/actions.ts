@@ -16,8 +16,12 @@ import {
 import { emit } from './events.ts';
 
 // ---------------------------------------------------------------- 獲得
+/** 一定区間の獲得量を桁落ちなく数えるためのカウンタ（放置計算で使う） */
+export const gainTracker = { total: new Decimal(0) };
+
 export function gain(s: GameState, amount: Decimal): void {
   if (amount.lte(0)) return;
+  gainTracker.total = gainTracker.total.add(amount);
   s.particles = s.particles.add(amount);
   s.runTotal = s.runTotal.add(amount);
   s.allTotal = s.allTotal.add(amount);

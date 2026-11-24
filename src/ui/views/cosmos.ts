@@ -18,13 +18,6 @@ import { fmt, fmtTime } from '../format.ts';
 import { ICON } from '../icons.ts';
 import { openSheet, closeSheet, toast } from '../overlay.ts';
 
-export function bigBangFlash(): void {
-  const f = h('div', { class: 'bb-flash' });
-  document.body.append(f);
-  f.animate([{ opacity: 0.9 }, { opacity: 0 }], { duration: 900, easing: 'ease-out' }).onfinish = () => f.remove();
-  document.querySelector('.core')?.animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 700, easing: 'cubic-bezier(0.2,0.8,0.2,1)' });
-}
-
 const DIM_UPGRADES_SORTED = [...DIM_UPGRADES].sort((a, b) => a.cost - b.cost);
 
 type Sub = 'bb' | 'law' | 'chal' | 'dim' | 'multi';
@@ -137,7 +130,6 @@ export class CosmosView {
       confirmSheet('ビッグバン', `粒子・生成装置・強化をリセットし、宇宙定数 ${fmt(g)} を得る。定数による永続倍率は ×${fmt(this.game.mods.constMult, 2)} → ×${fmt(after, 2)}（次の周回の生産 約${fmt(ratio, 2)}倍）。宇宙定数は「法則の木」で強力な法則に使える。`, '実行', 'purple', () => {
         if (bigBang(this.game.s, this.game.mods)) {
           this.game.refresh();
-          bigBangFlash();
           if (LAW_TREE.some((n) => lawAvailable(this.game.s, n) && this.game.s.constants.gte(n.cost))) this.setSub('law');
         }
       });
