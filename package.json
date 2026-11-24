@@ -1,0 +1,23 @@
+{
+  "name": "hitotsubu-uchu",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ひとつぶ宇宙 — スマホ向けインクリメンタルゲーム",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "sim": "node scripts/sim.ts"
+  },
+  "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/m-plus-1p": "^5.3.0",
+    "break_eternity.js": "^2.2.2"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0"
+  }
+}

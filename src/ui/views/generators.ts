@@ -1,0 +1,148 @@
+// 生成タブ: 生成装置カード（＋次元装置）
+import type { Game } from '../../core/game.ts';
+import { GENERATORS, DIM_GENERATORS, DIM_MILESTONE_EVERY, DIM_MILESTONE_MULT } from '../../data/generators.ts';
+import { genCost, nextMilestone, dimGenCost, dimGenMaxAffordable, dimGenRate, genMaxAffordable, D0 } from '../../core/formulas.ts';
+import { buyGen, genLocked, buyDimGen } from '../../core/actions.ts';
+import { h, setText, setBar, setDisabled, toggle } from '../dom.ts';
+import { GEN_ICONS } from '../icons.ts';
+import { fmt } from '../format.ts';
+import type Decimal from 'break_eternity.js';
+
+type Mode = 1 | 10 | 100 | 'max';
+
+interface GenRow {
+  root: HTMLElement;
+  name: HTMLElement;
+  cnt: HTMLElement;
+  mult: HTMLElement;
+  sub: HTMLElement;
+  bar: HTMLElement;
+  btn: HTMLButtonElement;
+  amt: HTMLElement;
+  cost: HTMLElement;
+}
+
+export class GeneratorsView {
+  el: HTMLElement;
+  private mode: Mode = 1;
+  private rows: GenRow[] = [];
+  private dimRows: GenRow[] = [];
+  private dimSection: HTMLElement;
+  private dimInfo: HTMLElement;
+  private segBtns: HTMLButtonElement[] = [];
+
+  private game: Game;
+
+  constructor(game: Game) {
+    this.game = game;
+    this.el = h('section', { class: 'view', 'data-view': 'gen' });
+    const seg = h('div', { class: 'seg', role: 'group', 'aria-label': '購入数' });
+    const modes: Mode[] = [1, 10, 100, 'max'];
+    for (const m of modes) {
+      const b = h('button', { type: 'button' }, m === 'max' ? 'MAX' : `×${m}`);
+      b.addEventListener('click', () => {
+        this.mode = m;
+        this.segBtns.forEach((x, i) => toggle(x, 'on', modes[i] === m));
+      });
+      this.segBtns.push(b);
+      seg.append(b);
+    }
+    this.segBtns[0].classList.add('on');
+    this.el.append(h('div', { class: 'sticky' }, [seg]));
+
+    GENERATORS.forEach((g, i) => {
+      const r = this.makeRow(GEN_ICONS[g.icon], g.name, false);
+      r.btn.addEventListener('click', () => {
+        const n = buyGen(game.s, game.mods, i, this.mode);
+        if (n > 0) game.refresh();
+      });
+      this.rows.push(r);
+      this.el.append(r.root);
+    });
+
+    this.dimSection = h('div', {});
+    this.dimInfo = h('div', { class: 'small muted' });
+    this.dimSection.append(h('div', { class: 'section-title' }, [h('span', { class: 'purple' }, '次元装置'), h('span', { class: 'grow' }), this.dimInfo]));
+    DIM_GENERATORS.forEach((d, i) => {
+      const icon = `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6">${'<circle cx="20" cy="20" r="' + (5 + i * 4) + '"/>'}<path d="M${8 + i} 20h${24 - i * 2}"/></svg>`;
+      const r = this.makeRow(icon, d.name, true);
+      r.btn.addEventListener('click', () => {
+        const n = buyDimGen(game.s, i, this.mode);
+        if (n > 0) game.refresh();
+      });
+      this.dimRows.push(r);
+      this.dimSection.append(r.root);
+    });
+    this.el.append(this.dimSection);
+  }
+
+  private makeRow(icon: string, name: string, dim: boolean): GenRow {
+    const nm = h('span', { class: 'n' }, name);
+    const cnt = h('span', { class: 'cnt' }, '0');
+    const mult = h('span', { class: 'mult' });
+    const sub = h('div', { class: 'gsub' });
+    const barI = h('i');
+    const bar = h('div', { class: dim ? 'bar purple' : 'bar' }, [barI]);
+    const amt = h('span', { class: 'amt' });
+    const cost = h('span', { class: 'cost' });
+    const btn = h('button', { class: 'buy', type: 'button' }, [amt, cost]);
+    const root = h('div', { class: dim ? 'gen dim' : 'gen' }, [
+      h('div', { class: 'gicon', html: icon }),
+      h('div', { class: 'gmain' }, [h('div', { class: 'gname' }, [nm, cnt, mult]), sub, bar]),
+      btn,
+    ]);
+    return { root, name: nm, cnt, mult, sub, bar: barI, btn, amt, cost };
+  }
+
+  private amountFor(i: number): number {
+    const s = this.game.s;
+    if (this.mode === 'max') return Math.max(1, genMaxAffordable(this.game.mods, i, s.gens[i], s.particles));
+    return this.mode;
+  }
+
+  update(): void {
+    const { s, mods } = this.game;
+    let revealNext = true;
+    GENERATORS.forEach((g, i) => {
+      const r = this.rows[i];
+      const owned = s.gens[i];
+      const locked = genLocked(s, i);
+      const visible = owned > 0 || revealNext || s.runTotal.gte(g.baseCost * 0.5);
+      revealNext = owned > 0;
+      toggle(r.root, 'hidden-gen', !visible || locked);
+      setText(r.name, visible ? g.name : '？？？');
+      setText(r.cnt, String(owned));
+      const n = this.amountFor(i);
+      const cost = genCost(mods, i, owned, n);
+      setText(r.amt, locked ? '封印中' : `×${n}`);
+      setText(r.cost, locked ? '—' : fmt(cost));
+      setDisabled(r.btn, locked || cost.gt(s.particles) || !visible);
+      const ms = nextMilestone(owned);
+      setText(r.mult, `次の×${fmt(mods.milestoneMult, 1)}まで ${ms.next - owned}`);
+      setBar(r.bar, (owned - ms.prev) / (ms.next - ms.prev));
+      const p: Decimal = mods.genProd[i] ?? D0;
+      setText(r.sub, visible ? (owned > 0 ? `毎秒 ${fmt(p, 1)}（1台 ${fmt(owned > 0 ? p.div(owned) : D0, 2)}）` : g.desc) : '');
+    });
+
+    const showDim = s.ascensions > 0;
+    this.dimSection.style.display = showDim ? '' : 'none';
+    if (!showDim) return;
+    setText(this.dimInfo, `欠片 ${fmt(s.shards)}`);
+    DIM_GENERATORS.forEach((d, i) => {
+      const r = this.dimRows[i];
+      const g = s.dimGens[i];
+      setText(r.cnt, fmt(g.amount, 1));
+      const n = this.mode === 'max' ? Math.max(1, dimGenMaxAffordable(i, g.bought, s.shards)) : this.mode;
+      const cost = dimGenCost(i, g.bought, n);
+      setText(r.amt, `×${n}`);
+      setText(r.cost, fmt(cost));
+      setDisabled(r.btn, cost.gt(s.shards));
+      const into = i === 0 ? '次元エネルギー' : DIM_GENERATORS[i - 1].name;
+      setText(r.sub, `${into}を毎秒 ${fmt(dimGenRate(s, mods, i), 2)}・購入 ${g.bought}`);
+      const k = g.bought % DIM_MILESTONE_EVERY;
+      setText(r.mult, `次の×${DIM_MILESTONE_MULT}まで ${DIM_MILESTONE_EVERY - k}`);
+      setBar(r.bar, k / DIM_MILESTONE_EVERY);
+      void d;
+    });
+  }
+}

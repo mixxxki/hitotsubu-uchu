@@ -1,0 +1,98 @@
+// 保存・読み込み・エクスポート/インポート
+import Decimal from 'break_eternity.js';
+import { type GameState, newState, SAVE_VERSION } from './state.ts';
+
+export const SAVE_KEY = 'hitotsubu-uchu-save';
+
+function replacer(_k: string, v: unknown): unknown {
+  if (v instanceof Decimal) return { __d: v.toString() };
+  if (v instanceof Set) return { __s: [...v] };
+  if (v === Infinity) return { __inf: 1 };
+  return v;
+}
+
+function reviver(_k: string, v: unknown): unknown {
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    if (typeof o.__d === 'string') return new Decimal(o.__d);
+    if (Array.isArray(o.__s)) return new Set(o.__s);
+    if (o.__inf === 1) return Infinity;
+  }
+  return v;
+}
+
+export function serialize(s: GameState): string {
+  return JSON.stringify(s, replacer);
+}
+
+/** 既定値に読み込んだ値を重ねる（項目追加に強くする） */
+function merge<T>(base: T, loaded: unknown): T {
+  if (loaded === undefined || loaded === null) return base;
+  if (base instanceof Decimal) return (loaded instanceof Decimal && !loaded.isNan() ? loaded : base) as T;
+  if (base instanceof Set) return (loaded instanceof Set ? loaded : base) as T;
+  if (Array.isArray(base)) {
+    if (!Array.isArray(loaded)) return base;
+    return base.map((b, i) => merge(b, loaded[i])) as T;
+  }
+  if (typeof base === 'object' && base !== null) {
+    if (typeof loaded !== 'object') return base;
+    const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+    for (const k of Object.keys(out)) out[k] = merge(out[k], (loaded as Record<string, unknown>)[k]);
+    return out as T;
+  }
+  if (base === null) return loaded as T;
+  return (typeof loaded === typeof base ? loaded : base) as T;
+}
+
+export function deserialize(json: string): GameState {
+  const raw = JSON.parse(json, reviver) as Record<string, unknown>;
+  if (!raw || typeof raw !== 'object' || typeof raw.version !== 'number') throw new Error('セーブデータの形式が正しくありません');
+  const base = newState();
+  // null を許す項目
+  const s = merge(base, raw);
+  s.challenge = typeof raw.challenge === 'number' ? raw.challenge : null;
+  const star = raw.star as GameState['star'];
+  s.star = star && typeof star.id === 'number' ? star : null;
+  s.version = SAVE_VERSION;
+  return s;
+}
+
+export function saveLocal(s: GameState, now = Date.now()): void {
+  s.lastSave = now;
+  try {
+    localStorage.setItem(SAVE_KEY, serialize(s));
+  } catch {
+    /* 容量超過など */
+  }
+}
+
+export function loadLocal(): GameState | null {
+  try {
+    const j = localStorage.getItem(SAVE_KEY);
+    if (!j) return null;
+    return deserialize(j);
+  } catch {
+    return null;
+  }
+}
+
+function b64encode(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+function b64decode(b64: string): string {
+  const bin = atob(b64.trim());
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+export function exportSave(s: GameState): string {
+  return b64encode(serialize(s));
+}
+
+export function importSave(text: string): GameState {
+  return deserialize(b64decode(text));
+}
