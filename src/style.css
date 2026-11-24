@@ -384,6 +384,15 @@ input, select, textarea { font: inherit; color: var(--text); }
   .top .amount { font-size: 34px; }
 }
 
+.bb-flash { position: fixed; inset: 0; background: #e8e6f0; pointer-events: none; z-index: 60; opacity: 0; }
+.chip.blink { animation: blink 0.6s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+.recommend { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 10px; margin-bottom: 8px; border: 1px dashed var(--lime); border-radius: 14px; color: var(--text); width: 100%; text-align: left; }
+.recommend .ricon { width: 32px; height: 32px; color: var(--lime); flex: none; }
+.recommend .ricon svg { width: 100%; height: 100%; }
+.recommend .rtext { flex: 1; min-width: 0; font-size: 12px; }
+.recommend .rtext b { display: block; font-size: 13px; }
+.recommend .rcost { font-family: var(--mono); color: var(--lime); font-size: 13px; }
 .stale-msg { position: fixed; inset: 0; z-index: 100; background: rgba(7, 7, 12, 0.92); display: grid; place-items: center; padding: 32px; text-align: center; color: var(--text); font-size: 15px; }
 
 .gen.hidden-gen .mult, .gen.hidden-gen .bar { visibility: hidden; }

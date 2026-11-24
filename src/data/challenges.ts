@@ -50,5 +50,5 @@ export const CHALLENGES: ChallengeDef[] = [
   { id: 'c9', name: '萎縮', rule: 'weakPow', ruleDesc: '生産量が0.8乗になる', goal: 1e42, reward: { type: 'prodMult', mult: 1e4 }, rewardDesc: 'すべての生産×10000' },
   { id: 'c10', name: '一点集中', rule: 'lastBoughtOnly', ruleDesc: '最後に購入した種類の装置しか生産しない', goal: 1e50, reward: { type: 'synergyMult', mult: 3 }, rewardDesc: '相乗効果×3' },
   { id: 'c11', name: '無法', rule: 'noLaws', ruleDesc: '法則の木の効果が無効', goal: 1e58, reward: { type: 'constGain', mult: 5 }, rewardDesc: '宇宙定数の獲得×5' },
-  { id: 'c12', name: '真空', rule: 'vacuum', ruleDesc: 'タップ・強化・流れ星がすべて無効', goal: 1e68, reward: { type: 'constExp', add: 0.15 }, rewardDesc: '宇宙定数倍率の指数+0.15' },
+  { id: 'c12', name: '真空', rule: 'vacuum', ruleDesc: 'タップ・強化・流れ星がすべて無効', goal: 1e70, reward: { type: 'constExp', add: 0.15 }, rewardDesc: '宇宙定数倍率の指数+0.15' },
 ];

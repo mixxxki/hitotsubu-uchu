@@ -16,6 +16,13 @@ import { fmt, fmtTime } from '../format.ts';
 import { ICON } from '../icons.ts';
 import { openSheet, closeSheet, toast } from '../overlay.ts';
 
+export function bigBangFlash(): void {
+  const f = h('div', { class: 'bb-flash' });
+  document.body.append(f);
+  f.animate([{ opacity: 0.9 }, { opacity: 0 }], { duration: 900, easing: 'ease-out' }).onfinish = () => f.remove();
+  document.querySelector('.core')?.animate([{ transform: 'scale(1.6)' }, { transform: 'scale(1)' }], { duration: 700, easing: 'cubic-bezier(0.2,0.8,0.2,1)' });
+}
+
 type Sub = 'bb' | 'law' | 'chal' | 'dim' | 'multi';
 const ROW_H = 78;
 
@@ -117,8 +124,13 @@ export class CosmosView {
       const s = this.game.s;
       if (!canBigBang(s)) return;
       const g = constantsGain(s, this.game.mods);
-      confirmSheet('ビッグバン', `粒子・生成装置・強化をリセットし、宇宙定数 ${fmt(g)} を得る。`, '実行', 'purple', () => {
-        if (bigBang(this.game.s, this.game.mods)) this.game.refresh();
+      const after = s.constantsEver.add(g).mul(BALANCE.constantEffectPer).add(1).pow(this.game.mods.constExp);
+      const ratio = after.div(this.game.mods.constMult);
+      confirmSheet('ビッグバン', `粒子・生成装置・強化をリセットし、宇宙定数 ${fmt(g)} を得る。定数による永続倍率は ×${fmt(this.game.mods.constMult, 2)} → ×${fmt(after, 2)}（次の周回の生産 約${fmt(ratio, 2)}倍）。宇宙定数は「法則の木」で強力な法則に使える。`, '実行', 'purple', () => {
+        if (bigBang(this.game.s, this.game.mods)) {
+          this.game.refresh();
+          bigBangFlash();
+        }
       });
     });
     this.chalNote = h('div', { class: 'small purple', style: 'margin-top:8px' });
@@ -370,8 +382,15 @@ export class CosmosView {
         const ok = canBigBang(s);
         const req = bigBangRequirement(s);
         setText(this.bbGain, ok ? `+${fmt(constantsGain(s, mods))}` : '—');
-        setText(this.bbReq, `この周回の粒子 ${fmt(s.runTotal)} / ${fmt(req)}`);
-        setBar(this.bbBar, ok ? 1 : s.runTotal.max(1).log10().div(req.log10()).toNumber());
+        let reqText = `この周回の粒子 ${fmt(s.runTotal)} / ${fmt(req)}`;
+        if (!ok) {
+          const pct = s.runTotal.div(req).toNumber() * 100;
+          reqText += `（${pct < 1 ? pct.toFixed(2) : pct.toFixed(1)}%`;
+          if (mods.pps.gt(0)) reqText += `・今のペースで あと約${fmtTime(req.sub(s.runTotal).div(mods.pps).toNumber())}`;
+          reqText += '）';
+        }
+        setText(this.bbReq, reqText);
+        setBar(this.bbBar, ok ? 1 : s.runTotal.div(req).toNumber());
         setText(this.bbNext, ok ? `次の+1まで 粒子 ${fmt(nextConstantAt(s, mods))}` : '');
         setText(this.chalNote, s.challenge !== null ? `挑戦中：${CHALLENGES[s.challenge].name}（目標に達してビッグバンで達成）` : '');
         setDisabled(this.bbBtn, !ok);

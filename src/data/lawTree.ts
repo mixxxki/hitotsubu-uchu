@@ -86,7 +86,7 @@ export const LAW_REPEAT = {
   name: '無限の法則',
   desc: 'レベルごとにすべての生産×10',
   baseCost: 1e22,
-  costGrowth: 100,
+  costGrowth: 400,
   mult: 10,
   /** 解放条件: このノード購入済み */
   req: 'unified',

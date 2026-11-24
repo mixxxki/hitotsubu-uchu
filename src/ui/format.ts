@@ -51,6 +51,12 @@ export function fmtTime(sec: number): string {
   return `${s}秒`;
 }
 
+/** 整数なら小数なし */
+export function fmtSmart(x: Decimal | number): string {
+  const d = typeof x === 'number' ? new Decimal(x) : x;
+  return fmt(d, d.lt(1000) && d.floor().eq(d) ? 0 : 1);
+}
+
 export function fmtMult(x: Decimal | number): string {
   return '×' + fmt(x, 2);
 }

@@ -9,7 +9,7 @@ import { ACHIEVEMENTS } from '../data/achievements.ts';
 import { AUTOMATIONS } from '../data/automation.ts';
 import { CHALLENGES } from '../data/challenges.ts';
 import { h, setText, toggle } from './dom.ts';
-import { fmt, fmtTime, setNotation } from './format.ts';
+import { fmt, fmtTime, setNotation, fmtSmart } from './format.ts';
 import { ICON, coreSvg, starSvg } from './icons.ts';
 import { initFloaters, floatText, toast, toastGroup, openSheet, closeSheet, updateSheet } from './overlay.ts';
 import { GeneratorsView } from './views/generators.ts';
@@ -132,7 +132,7 @@ export class App {
     const { s, mods } = this.game;
     const v = tap(s, mods);
     this.core.animate([{ transform: 'scale(0.94)' }, { transform: 'scale(1)' }], { duration: 160, easing: 'ease-out' });
-    if (s.settings.floaters) floatText(x, y, hasRule(s, 'noTap') ? '0' : `+${fmt(v, 1)}`);
+    if (s.settings.floaters) floatText(x, y, hasRule(s, 'noTap') ? '0' : `+${fmtSmart(v)}`);
   }
 
   // ------------------------------------------------------------ 流れ星
@@ -362,7 +362,7 @@ export class App {
   frame(dt: number): void {
     const { s, mods } = this.game;
     setText(this.amountNum, fmt(s.particles));
-    setText(this.rate, `毎秒 ${fmt(mods.pps, 1)}　タップ ${fmt(mods.tapValue, 1)}`);
+    setText(this.rate, `毎秒 +${fmt(mods.pps, 1)}　1タップ +${fmtSmart(mods.tapValue)}`);
 
     // 流れ星
     if (s.star && s.star.id !== this.starId) this.spawnStar(s.star.id);
@@ -393,7 +393,7 @@ export class App {
   private renderChips(): void {
     const { s } = this.game;
     const parts: Array<[string, string]> = [];
-    if (s.time < s.buffUntil) parts.push(['star', `流れ星 ×${fmt(s.buffMult, 1)}・残り${Math.ceil(s.buffUntil - s.time)}秒`]);
+    if (s.time < s.buffUntil) parts.push([s.buffUntil - s.time < 5 ? 'star blink' : 'star', `流れ星 ×${fmt(s.buffMult, 1)}・残り${Math.ceil(s.buffUntil - s.time)}秒`]);
     if (s.challenge !== null) parts.push(['purple', `挑戦中：${CHALLENGES[s.challenge].name}`]);
     if (s.constants.gt(0) || s.bigBangsEver > 0) parts.push(['', `宇宙定数 ${fmt(s.constants)}`]);
     if (s.ascensions > 0) parts.push(['purple', `欠片 ${fmt(s.shards)}`]);

@@ -7,6 +7,10 @@ import { h, setText, setBar, setDisabled, toggle } from '../dom.ts';
 import { GEN_ICONS } from '../icons.ts';
 import { fmt } from '../format.ts';
 import type Decimal from 'break_eternity.js';
+import { UPGRADES, type UpgradeDef } from '../../data/upgrades.ts';
+import { upgradeStatus, buyUpgrade } from '../../core/actions.ts';
+import { upgradeCost, hasRule } from '../../core/formulas.ts';
+import { upgradeIcon } from './upgrades.ts';
 
 type Mode = 1 | 10 | 100 | 'max';
 
@@ -30,6 +34,12 @@ export class GeneratorsView {
   private dimSection: HTMLElement;
   private dimInfo: HTMLElement;
   private segBtns: HTMLButtonElement[] = [];
+  private rec!: HTMLButtonElement;
+  private recIcon!: HTMLElement;
+  private recName!: HTMLElement;
+  private recDesc!: HTMLElement;
+  private recCost!: HTMLElement;
+  private recId: string | null = null;
 
   private game: Game;
 
@@ -49,6 +59,19 @@ export class GeneratorsView {
     }
     this.segBtns[0].classList.add('on');
     this.el.append(h('div', { class: 'sticky' }, [seg]));
+
+    // おすすめ強化（いちばん安い解放済みの強化）
+    this.recIcon = h('div', { class: 'ricon' });
+    this.recName = h('b', {});
+    this.recDesc = h('span', { class: 'muted' });
+    this.recCost = h('span', { class: 'rcost' });
+    this.rec = h('button', { class: 'recommend', type: 'button' }, [this.recIcon, h('div', { class: 'rtext' }, [this.recName, this.recDesc]), this.recCost]);
+    this.rec.addEventListener('click', () => {
+      if (this.recId === null) return;
+      const u = UPGRADES.find((x) => x.id === this.recId);
+      if (u && buyUpgrade(game.s, game.mods, u)) game.refresh();
+    });
+    this.el.append(this.rec);
 
     GENERATORS.forEach((g, i) => {
       const r = this.makeRow(GEN_ICONS[g.icon], g.name, false);
@@ -100,8 +123,39 @@ export class GeneratorsView {
     return this.mode;
   }
 
+  private updateRec(): void {
+    const { s, mods } = this.game;
+    let best: UpgradeDef | null = null;
+    let bestCost: Decimal | null = null;
+    const autoOn = s.autoUnlocked.has('autoUpg') && s.auto.upgrades;
+    if (!autoOn && !hasRule(s, 'noUpgrades')) {
+      for (const u of UPGRADES) {
+        const st = upgradeStatus(s, mods, u);
+        if (st !== 'affordable' && st !== 'unlocked') continue;
+        const c = upgradeCost(mods, u);
+        if (!bestCost || c.lt(bestCost)) {
+          best = u;
+          bestCost = c;
+        }
+      }
+    }
+    this.rec.style.display = best ? '' : 'none';
+    if (!best || !bestCost) return;
+    if (this.recId !== best.id) {
+      this.recId = best.id;
+      this.recIcon.innerHTML = upgradeIcon(best);
+      setText(this.recName, `おすすめ強化：${best.name}`);
+      setText(this.recDesc, best.desc);
+    }
+    const can = bestCost.lte(s.particles);
+    setText(this.recCost, can ? `${fmt(bestCost)} で購入` : fmt(bestCost));
+    toggle(this.rec, 'dim-rec', !can);
+    this.rec.style.opacity = can ? '1' : '0.6';
+  }
+
   update(): void {
     const { s, mods } = this.game;
+    this.updateRec();
     let revealNext = true;
     GENERATORS.forEach((g, i) => {
       const r = this.rows[i];
@@ -118,7 +172,7 @@ export class GeneratorsView {
       setText(r.cost, locked ? '—' : fmt(cost));
       setDisabled(r.btn, locked || cost.gt(s.particles) || !visible);
       const ms = nextMilestone(owned);
-      setText(r.mult, `次の×${fmt(mods.milestoneMult, 1)}まで ${ms.next - owned}`);
+      setText(r.mult, owned > 0 ? `次の×${fmt(mods.milestoneMult, 1)}まで ${ms.next - owned}` : '');
       setBar(r.bar, (owned - ms.prev) / (ms.next - ms.prev));
       const p: Decimal = mods.genProd[i] ?? D0;
       setText(r.sub, visible ? (owned > 0 ? `毎秒 ${fmt(p, 1)}（1台 ${fmt(owned > 0 ? p.div(owned) : D0, 2)}）` : g.desc) : '');

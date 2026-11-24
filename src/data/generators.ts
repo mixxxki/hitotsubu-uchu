@@ -13,8 +13,8 @@ export interface GeneratorDef {
 export type GenIcon = 'dust' | 'pebble' | 'rock' | 'moon' | 'planet' | 'star' | 'cluster' | 'galaxy';
 
 export const GENERATORS: GeneratorDef[] = [
-  { id: 'dust', name: '塵', desc: '漂う微粒子が、少しずつ寄り集まる。', baseCost: 10, costGrowth: 1.15, baseProd: 0.15, icon: 'dust' },
-  { id: 'pebble', name: '小石', desc: '固まった塵。転がるたびに粒子をこぼす。', baseCost: 120, costGrowth: 1.15, baseProd: 1.1, icon: 'pebble' },
+  { id: 'dust', name: '塵', desc: '漂う微粒子が、少しずつ寄り集まる。', baseCost: 10, costGrowth: 1.15, baseProd: 0.25, icon: 'dust' },
+  { id: 'pebble', name: '小石', desc: '固まった塵。転がるたびに粒子をこぼす。', baseCost: 120, costGrowth: 1.15, baseProd: 1.5, icon: 'pebble' },
   { id: 'rock', name: '岩塊', desc: '重さが重さを呼ぶ。', baseCost: 1600, costGrowth: 1.15, baseProd: 7.5, icon: 'rock' },
   { id: 'moon', name: '月', desc: '引力の輪が粒子を集める。', baseCost: 2.4e4, costGrowth: 1.15, baseProd: 55, icon: 'moon' },
   { id: 'planet', name: '惑星', desc: '大気が粒子を紡ぐ。', baseCost: 4e5, costGrowth: 1.15, baseProd: 400, icon: 'planet' },
