@@ -55,7 +55,7 @@ export class UpgradesView {
       h('div', { class: 'legend' }, [
         h('span', {}, [h('i', { class: 'l-own' }), '購入済み']),
         h('span', {}, [h('i', { class: 'l-aff' }), '購入可']),
-        h('span', {}, [h('i'), '解放済み']),
+        h('span', {}, [h('i', { class: 'l-unl' }), '解放済み']),
         h('span', {}, [h('i', { class: 'l-lock' }), '未解放']),
       ]),
     );
@@ -87,6 +87,7 @@ export class UpgradesView {
     const kind = h('div', { class: 'small muted' }, KIND_LABEL[u.kind]);
     const desc = h('p', { class: 'desc' });
     const cost = h('div', { class: 'kv' }, [h('span', {}, '価格'), h('span', {})]);
+    const need = h('div', { class: 'kv' }, [h('span', {}, 'あと'), h('span', {})]);
     const cond = h('div', { class: 'kv' }, [h('span', {}, '解放条件'), h('span', { style: 'font-family:var(--sans)' }, unlockText(u.unlock))]);
     const btn = h('button', { class: 'btn fill block', type: 'button', style: 'margin-top:12px' });
     btn.addEventListener('click', () => {
@@ -95,13 +96,16 @@ export class UpgradesView {
         closeSheet();
       }
     });
-    const wrap = h('div', {}, [icon, kind, title, desc, cost, cond, btn]);
+    const wrap = h('div', {}, [icon, kind, title, desc, cost, need, cond, btn]);
     const upd = () => {
       const st = upgradeStatus(this.game.s, this.game.mods, u);
       const known = st !== 'locked';
       setText(title, known ? u.name : '？？？');
       setText(desc, known ? u.desc : '解放条件を満たすと明らかになる');
-      setText(cost.lastChild as HTMLElement, fmt(upgradeCost(this.game.mods, u)));
+      const c = upgradeCost(this.game.mods, u);
+      setText(cost.lastChild as HTMLElement, fmt(c));
+      need.style.display = st === 'unlocked' ? '' : 'none';
+      setText(need.lastChild as HTMLElement, `${fmt(c.sub(this.game.s.particles).max(0))} 粒子`);
       setText(btn, st === 'owned' ? '購入済み' : st === 'locked' ? '未解放' : hasRule(this.game.s, 'noUpgrades') ? '挑戦中は購入不可' : st === 'affordable' ? '購入する' : '粒子が足りない');
       setDisabled(btn, st !== 'affordable');
       icon.style.color = st === 'owned' || st === 'affordable' ? 'var(--lime)' : 'var(--sub)';

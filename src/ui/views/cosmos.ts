@@ -50,6 +50,7 @@ export class CosmosView {
   // 法則
   private lawConst!: HTMLElement;
   private nodes = new Map<string, HTMLButtonElement>();
+  private nodeCosts = new Map<string, HTMLElement>();
   private links: Array<{ el: SVGLineElement; a: string; b: string }> = [];
   private repeatBtn!: HTMLButtonElement;
   private repeatInfo!: HTMLElement;
@@ -144,6 +145,14 @@ export class CosmosView {
     const p = h('div', {});
     this.lawConst = h('span', { class: 'num purple' });
     p.append(h('div', { class: 'section-title' }, [h('span', {}, '宇宙定数'), this.lawConst, h('span', { class: 'grow' }), h('span', {}, `${LAW_TREE.length}の法則`)]));
+    p.append(
+      h('div', { class: 'legend' }, [
+        h('span', {}, [h('i', { class: 'l-pown' }), '解明済み']),
+        h('span', {}, [h('i', { class: 'l-paff' }), '解明できる']),
+        h('span', {}, [h('i', { class: 'l-unl' }), '定数が足りない']),
+        h('span', {}, [h('i', { class: 'l-lock' }), '前提が必要']),
+      ]),
+    );
     const rows = Math.max(...LAW_TREE.map((n) => n.row)) + 1;
     const tree = h('div', { class: 'tree', style: `height:${rows * ROW_H + 10}px` });
     const svgNS = 'http://www.w3.org/2000/svg';
@@ -161,7 +170,9 @@ export class CosmosView {
       const b = h('button', { class: 'node locked', type: 'button', 'aria-label': n.name, style: `left:${((n.col + 0.5) / 5) * 100}%;top:${n.row * ROW_H + 34}px`, html: ICON.law });
       b.addEventListener('click', () => this.openLaw(n));
       this.nodes.set(n.id, b);
-      tree.append(b);
+      const lab = h('div', { class: 'node-cost', style: `left:${((n.col + 0.5) / 5) * 100}%;top:${n.row * ROW_H + 34}px` }, fmt(n.cost));
+      this.nodeCosts.set(n.id, lab);
+      tree.append(b, lab);
     }
     p.append(tree);
     this.repeatInfo = h('div', { class: 'small muted' });
@@ -367,6 +378,8 @@ export class CosmosView {
           if (b.className !== cls) {
             setClass(b, cls);
             b.innerHTML = owned ? ICON.lawOwned : ICON.law;
+            setClass(this.nodeCosts.get(n.id)!, owned ? 'node-cost owned' : avail ? 'node-cost' : 'node-cost locked');
+            setText(this.nodeCosts.get(n.id)!, owned ? n.name : fmt(n.cost));
           }
         }
         for (const l of this.links) {

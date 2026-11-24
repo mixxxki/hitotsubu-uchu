@@ -11,7 +11,7 @@ import { CHALLENGES } from '../data/challenges.ts';
 import { h, setText, toggle } from './dom.ts';
 import { fmt, fmtTime, setNotation } from './format.ts';
 import { ICON, coreSvg, starSvg } from './icons.ts';
-import { initFloaters, floatText, toast, openSheet, closeSheet, updateSheet } from './overlay.ts';
+import { initFloaters, floatText, toast, toastGroup, openSheet, closeSheet, updateSheet } from './overlay.ts';
 import { GeneratorsView } from './views/generators.ts';
 import { UpgradesView } from './views/upgrades.ts';
 import { AutomationView } from './views/automation.ts';
@@ -23,6 +23,7 @@ type TabId = 'gen' | 'upg' | 'auto' | 'ach' | 'cosmos';
 
 export class App {
   private amount!: HTMLElement;
+  private amountNum!: HTMLElement;
   private rate!: HTMLElement;
   private chips!: HTMLElement;
   private core!: HTMLButtonElement;
@@ -63,7 +64,8 @@ export class App {
     document.body.prepend(bg);
     drawBackground(bg);
 
-    this.amount = h('div', { class: 'amount num' });
+    this.amountNum = h('span', {});
+    this.amount = h('div', { class: 'amount num' }, [this.amountNum, h('span', { class: 'unit' }, '粒子')]);
     this.rate = h('div', { class: 'rate' });
     const gear = h('button', { class: 'iconbtn', type: 'button', 'aria-label': '設定', html: ICON.gear });
     gear.addEventListener('click', () => this.openSettings());
@@ -141,8 +143,13 @@ export class App {
     const W = window.innerWidth;
     const H = window.innerHeight;
     const fromLeft = Math.random() < 0.5;
-    const y0 = H * (0.12 + Math.random() * 0.25);
-    const y1 = y0 + H * (0.15 + Math.random() * 0.2);
+    // 核のまわり（ステージ内）だけを横切る。リストの購入ボタンに重ならないように
+    const st = this.core.parentElement!.getBoundingClientRect();
+    const top = Math.max(st.top + 20, 40);
+    const bottom = Math.max(top + 40, st.bottom - 20);
+    const y0 = top + Math.random() * (bottom - top) * 0.5;
+    const y1 = y0 + Math.random() * (bottom - y0);
+    void H;
     const x0 = fromLeft ? -40 : W + 40;
     const x1 = fromLeft ? W + 40 : -40;
     const flip = fromLeft ? '' : ' scaleX(-1)';
@@ -180,7 +187,7 @@ export class App {
       switch (e.type) {
         case 'achievement': {
           const a = ACHIEVEMENTS.find((x) => x.id === e.id);
-          if (a) toast(`実績解除：${a.name}`, 'lime');
+          if (a) toastGroup('ach', '実績を{n}個解除', `実績解除：${a.name}`, 'lime');
           break;
         }
         case 'starCaught':
@@ -354,7 +361,7 @@ export class App {
   // ------------------------------------------------------------ 描画
   frame(dt: number): void {
     const { s, mods } = this.game;
-    setText(this.amount, fmt(s.particles));
+    setText(this.amountNum, fmt(s.particles));
     setText(this.rate, `毎秒 ${fmt(mods.pps, 1)}　タップ ${fmt(mods.tapValue, 1)}`);
 
     // 流れ星
