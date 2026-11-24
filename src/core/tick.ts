@@ -61,6 +61,12 @@ export function tick(s: GameState, dt: number, opts: TickOptions = {}): Mods {
   }
 
   // 自動購入
+  // 挑戦の最高到達
+  if (s.challenge !== null) {
+    const lg = s.runTotal.max(1).log10().toNumber();
+    if (lg > (s.challengeBest[s.challenge] ?? 0)) s.challengeBest[s.challenge] = lg;
+  }
+
   // 自動購入（大きな dt でも回数がずれないよう複数回まわす）
   s.autoAcc += dt;
   const interval = AUTO_BUY_INTERVAL / m.autoSpeed;
@@ -101,15 +107,15 @@ export function runAutomation(s: GameState, m: Mods): Mods {
     }
   }
   if (u.has('autoBigBang') && s.auto.bigBang && canBigBang(s)) {
-    // 次元上昇が可能なときは自動ビッグバンしない（取り逃し防止）
-    if (!canAscend(s)) {
+    // 「次元上昇できるときは止める」設定なら、取り逃し防止のため止める
+    if (!(canAscend(s) && s.auto.bigBangHold)) {
       const g = constantsGain(s, m);
       const runTime = s.time - s.runStart;
       let ok = false;
       if (s.challenge !== null) ok = true;
       else if (s.auto.bigBangMode === 'constants') ok = g.gte(s.auto.bigBangValue);
       else if (s.auto.bigBangMode === 'time') ok = runTime >= s.auto.bigBangValue;
-      else ok = g.gte(s.constants.max(1).mul(s.auto.bigBangValue));
+      else ok = g.gte(s.constantsEver.max(1).mul(s.auto.bigBangValue));
       if (ok) {
         bigBang(s, m);
         return computeMods(s);

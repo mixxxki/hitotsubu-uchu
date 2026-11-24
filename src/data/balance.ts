@@ -38,16 +38,20 @@ export const BALANCE = {
   constantEffectPer: 1,
   /** 宇宙定数倍率の指数（法則の木で上昇） */
   constantEffectExp: 0.75,
+  /** 法則「膨張」「調和」で数えるビッグバン回数の上限（連打が最適にならないように） */
+  perBigBangCap: 30,
 
   // ---- 次元上昇 ----
   ascendReq: 1e100,
   /** 次元の欠片 = floor(ascendGainMult * 10^((log10(粒子) - 100) / ascendGainDiv)) */
-  ascendGainMult: 2,
+  ascendGainMult: 10,
   ascendGainDiv: 22,
   /** 次元エネルギーの効果: 粒子生産 ×(1+E)^energyExp */
-  energyExp: 0.5,
+  energyExp: 1,
   /** 次元エネルギーの効果: 宇宙定数獲得 ×(1+E)^energyConstExp */
   energyConstExp: 0.15,
+  /** 次元エネルギーの効果: 次元の欠片獲得 ×(1+E)^energyShardExp */
+  energyShardExp: 0.02,
 
   // ---- 多元宇宙（枠のみ） ----
   multiverseReqShardsEver: 1e14,

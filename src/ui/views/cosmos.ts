@@ -9,7 +9,7 @@ import {
 } from '../../core/formulas.ts';
 import {
   bigBang, buyLaw, lawAvailable, buyLawRepeat, lawRepeatAvailable, enterChallenge, exitChallenge, ascend, buyDimUpgrade, buyDimRepeat,
-  multiverse, potentialGain,
+  multiverse, potentialGain, respecLaws,
 } from '../../core/actions.ts';
 import { h, setText, setClass, setDisabled, setBar, toggle } from '../dom.ts';
 import { fmt, fmtTime } from '../format.ts';
@@ -57,7 +57,7 @@ export class CosmosView {
   private repeatCard!: HTMLElement;
 
   // 挑戦
-  private chalCards: Array<{ root: HTMLElement; tag: HTMLElement; btn: HTMLButtonElement; prog: HTMLElement }> = [];
+  private chalCards: Array<{ root: HTMLElement; tag: HTMLElement; btn: HTMLButtonElement; prog: HTMLElement; best: HTMLElement }> = [];
 
   // 次元
   private dimLocked!: HTMLElement;
@@ -133,10 +133,10 @@ export class CosmosView {
         this.bbBtn,
       ]),
     );
-    const labels = ['宇宙定数（所持）', '宇宙定数（累計）', '定数による倍率', 'ビッグバン回数', 'この周回の経過', '最速ビッグバン'];
+    const labels = ['今ビッグバンした場合の定数/分', '定数/分の過去最高', '宇宙定数（所持）', '宇宙定数（累計）', '定数による倍率', 'ビッグバン回数', 'この周回の経過', '最速ビッグバン'];
     this.bbStats = labels.map(() => h('span', {}));
     p.append(h('div', { class: 'card' }, labels.map((l, i) => h('div', { class: 'kv' }, [h('span', {}, l), this.bbStats[i]]))));
-    p.append(h('p', { class: 'small muted' }, `この周回で粒子を累計 ${fmt(BALANCE.bigBangReq)} 集めるとビッグバンできる。宇宙定数は累計量に応じて永続倍率になり、法則の木で使える（使っても倍率は減らない）。`));
+    p.append(h('p', { class: 'small muted' }, `この周回で粒子を累計 ${fmt(BALANCE.bigBangReq)} 集めるとビッグバンできる。宇宙定数は累計量に応じて永続倍率になり、法則の木で使える（使っても倍率は減らない）。「定数/分」が過去最高を下回り始めたら、ビッグバンの目安。`));
     return p;
   }
 
@@ -182,6 +182,15 @@ export class CosmosView {
     });
     this.repeatCard = h('div', { class: 'card purple' }, [h('h3', {}, LAW_REPEAT.name), h('div', { class: 'small' }, LAW_REPEAT.desc), this.repeatInfo, this.repeatBtn]);
     p.append(this.repeatCard);
+    const respec = h('button', { class: 'btn ghost block', type: 'button' }, '法則を振り直す');
+    respec.addEventListener('click', () =>
+      confirmSheet('法則を振り直す', '解明した法則をすべて戻し、使った宇宙定数を全額返す。今の周回はリセットされる（定数は得られない）。', '振り直す', 'purple', () => {
+        const r = respecLaws(this.game.s);
+        this.game.refresh();
+        toast(`宇宙定数 ${fmt(r)} を返した`, 'purple');
+      }),
+    );
+    p.append(respec, h('p', { class: 'small muted' }, '「光度」と「星々の合唱」は二択。どちらか一方しか解明できない。'));
     window.addEventListener('resize', () => this.layoutLinks());
     return p;
   }
@@ -220,7 +229,8 @@ export class CosmosView {
       const owned = s.laws.has(n.id);
       const avail = lawAvailable(s, n);
       setText(cost, `${fmt(n.cost)}`);
-      setText(btn, owned ? '解明済み' : !avail ? '前提の法則が必要' : s.constants.gte(n.cost) ? '解明する' : '宇宙定数が足りない');
+      const blocked = !!n.excl && s.laws.has(n.excl);
+      setText(btn, owned ? '解明済み' : blocked ? '二択のもう一方を解明済み（振り直しで変更可）' : !avail ? '前提の法則が必要' : s.constants.gte(n.cost) ? '解明する' : '宇宙定数が足りない');
       setDisabled(btn, owned || !avail || s.constants.lt(n.cost));
     };
     upd();
@@ -245,6 +255,7 @@ export class CosmosView {
       const tag = h('span', { class: 'tag' });
       const btn = h('button', { class: 'btn purple', type: 'button', style: 'margin-top:6px' });
       const prog = h('i');
+      const best = h('div', { class: 'small muted num' });
       btn.addEventListener('click', () => {
         const s = this.game.s;
         if (s.challenge === i) {
@@ -267,9 +278,10 @@ export class CosmosView {
         h('div', { class: 'small muted' }, `目標：粒子 ${fmt(c.goal)}`),
         h('div', { class: 'small lime' }, `報酬：${c.rewardDesc}`),
         h('div', { class: 'bar purple' }, [prog]),
+        best,
         btn,
       ]);
-      this.chalCards.push({ root, tag, btn, prog });
+      this.chalCards.push({ root, tag, btn, prog, best });
       p.append(root);
     });
     return p;
@@ -364,7 +376,9 @@ export class CosmosView {
         setText(this.chalNote, s.challenge !== null ? `挑戦中：${CHALLENGES[s.challenge].name}（目標に達してビッグバンで達成）` : '');
         setDisabled(this.bbBtn, !ok);
         setText(this.bbBtn, s.challenge !== null ? 'ビッグバンして挑戦達成' : 'ビッグバン');
-        const st = [fmt(s.constants), fmt(s.constantsEver), `×${fmt(mods.constMult, 2)}`, `${s.bigBangs}（累計 ${s.bigBangsEver}）`, fmtTime(s.time - s.runStart), fmtTime(s.fastestBigBang)];
+        const rt = Math.max(1, s.time - s.runStart);
+        const rate = ok ? constantsGain(s, mods).div(rt / 60) : null;
+        const st = [rate ? fmt(rate, 2) : '—', s.bestConstRate.gt(0) ? fmt(s.bestConstRate, 2) : '—', fmt(s.constants), fmt(s.constantsEver), `×${fmt(mods.constMult, 2)}`, `${s.bigBangs}（累計 ${s.bigBangsEver}）`, fmtTime(s.time - s.runStart), fmtTime(s.fastestBigBang)];
         st.forEach((v, i) => setText(this.bbStats[i], v));
         break;
       }
@@ -406,7 +420,9 @@ export class CosmosView {
           toggle(card.root, 'locked-box', !unlocked);
           setText(card.btn, active ? '中断する' : !unlocked ? '法則の木で解放' : done ? 'もう一度挑む' : '挑戦する');
           setDisabled(card.btn, !unlocked || (s.challenge !== null && !active));
-          const prog = active ? s.runTotal.max(1).log10().div(Math.log10(c.goal)).toNumber() : done ? 1 : 0;
+          const b = s.challengeBest[i] ?? 0;
+          setText(card.best, b > 0 ? `最高到達 1e${Math.floor(b)}${done ? '' : `（目標 1e${Math.round(Math.log10(c.goal))}）`}` : '');
+          const prog = active ? s.runTotal.max(1).log10().div(Math.log10(c.goal)).toNumber() : done ? 1 : b / Math.log10(c.goal);
           setBar(card.prog, prog);
         });
         break;

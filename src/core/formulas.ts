@@ -134,6 +134,8 @@ export function computeMods(s: GameState): Mods {
   let autoTapRate = 0;
   let perBB = 0;
   let perRunTimeMax = 1;
+  let constRunMax = 1;
+  let constRunSec = 300;
   let milestoneMult: number = BALANCE.milestoneMult;
   let genPow = 1;
   let autoSpeed = 1;
@@ -158,6 +160,7 @@ export function computeMods(s: GameState): Mods {
       case 'milestoneMult': milestoneMult += e.add; break;
       case 'genPow': genPow += e.add; break;
       case 'autoSpeed': autoSpeed *= e.mult; break;
+      case 'constPerRunTime': constRunMax *= e.maxMult; constRunSec = e.seconds; break;
       case 'unlockChallenges': for (let i = e.from; i < e.to; i++) challengesUnlocked[i] = true; break;
     }
   }
@@ -206,6 +209,7 @@ export function computeMods(s: GameState): Mods {
       case 'energyExp': energyExp += e.add; break;
       case 'offlineHours': offlineHours += e.add; break;
       case 'shardGain': shardGain *= e.mult; break;
+      case 'constExp': constExp += e.add; break;
       default: break;
     }
   }
@@ -223,7 +227,7 @@ export function computeMods(s: GameState): Mods {
   const runTimeMult = (1 + (perRunTimeMax - 1) * runFrac) * (1 + (runTimeMax - 1) * Math.min(1, runTime / 7200));
   const decay = hasRule(s, 'decay') ? Math.pow(0.5, runTime / 600) : 1;
 
-  const global = new Decimal(globalNum * achMult * chalProd * buff * runTimeMult * decay * (1 + perBB * s.bigBangs))
+  const global = new Decimal(globalNum * achMult * chalProd * buff * runTimeMult * decay * (1 + perBB * Math.min(s.bigBangs, BALANCE.perBigBangCap)))
     .mul(lawProd)
     .mul(dimProd)
     .mul(constMult)
@@ -250,7 +254,8 @@ export function computeMods(s: GameState): Mods {
   const tapMultD = new Decimal(tapMult).mul(achMult).mul(lawProd.pow(0.5)).mul(dimProd.pow(0.5));
   const tapValue = noTap ? D0 : tapMultD.mul(BALANCE.tapBase).add(pps.mul(tapPct));
 
-  const constGainD = new Decimal(constGain).mul(s.energy.add(1).pow(BALANCE.energyConstExp));
+  const constRun = 1 + (constRunMax - 1) * Math.min(1, runTime / constRunSec);
+  const constGainD = new Decimal(constGain * constRun).mul(s.energy.add(1).pow(BALANCE.energyConstExp));
 
   return {
     genMult,
@@ -315,7 +320,7 @@ export function dimRepeatCost(s: GameState): Decimal {
 
 export function dimGenCost(gi: number, bought: number, amount = 1): Decimal {
   const d = DIM_GENERATORS[gi];
-  return Decimal.sumGeometricSeries(amount, d.baseCost, d.costGrowth, bought);
+  return Decimal.sumGeometricSeries(amount, d.baseCost, d.costGrowth, bought).ceil();
 }
 
 export function dimGenMaxAffordable(gi: number, bought: number, money: Decimal): number {
@@ -360,7 +365,7 @@ export function canAscend(s: GameState): boolean {
 export function shardsGain(s: GameState, m: Mods): Decimal {
   if (!canAscend(s)) return D0;
   const lg = s.runTotal.log10().sub(100).div(BALANCE.ascendGainDiv);
-  return Decimal.pow(10, lg).mul(BALANCE.ascendGainMult).mul(m.shardGain).floor().max(1);
+  return Decimal.pow(10, lg).mul(BALANCE.ascendGainMult).mul(m.shardGain).mul(s.energy.add(1).pow(BALANCE.energyShardExp)).floor().max(1);
 }
 
 export function multiverseReady(s: GameState): boolean {

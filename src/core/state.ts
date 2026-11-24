@@ -1,5 +1,6 @@
 import Decimal from 'break_eternity.js';
 import { GENERATORS, DIM_GENERATORS } from '../data/generators.ts';
+import { CHALLENGES } from '../data/challenges.ts';
 
 export type Notation = 'sci' | 'suffix';
 export type AutoBBMode = 'constants' | 'time' | 'multiple';
@@ -54,6 +55,10 @@ export interface GameState {
   lawRepeat: number;
   challenge: number | null;
   challengesDone: Set<number>;
+  /** 挑戦ごとの最高到達（log10） */
+  challengeBest: number[];
+  /** 宇宙定数の獲得ペース（/分）の過去最高 */
+  bestConstRate: Decimal;
 
   // ---- 次元層 ----
   ascensions: number;
@@ -77,6 +82,8 @@ export interface GameState {
     bigBang: boolean;
     bigBangMode: AutoBBMode;
     bigBangValue: number;
+    /** 次元上昇できるときは自動ビッグバンを止める */
+    bigBangHold: boolean;
     dim: boolean;
     ascend: boolean;
     ascendValue: number; // 獲得する欠片がこの値以上
@@ -129,6 +136,8 @@ export function newState(now = Date.now()): GameState {
     lawRepeat: 0,
     challenge: null,
     challengesDone: new Set(),
+    challengeBest: CHALLENGES.map(() => 0),
+    bestConstRate: new Decimal(0),
     ascensions: 0,
     shards: new Decimal(0),
     shardsEver: new Decimal(0),
@@ -146,6 +155,7 @@ export function newState(now = Date.now()): GameState {
       bigBang: false,
       bigBangMode: 'constants',
       bigBangValue: 10,
+      bigBangHold: true,
       dim: true,
       ascend: false,
       ascendValue: 2,

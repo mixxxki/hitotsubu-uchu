@@ -36,7 +36,7 @@ export interface DimGenDef {
 
 export const DIM_GENERATORS: DimGenDef[] = [
   { id: 'string', name: '弦', desc: '震える一次元。次元エネルギーを生む。', baseCost: 1, costGrowth: 1.6, baseProd: 1 },
-  { id: 'brane', name: '膜', desc: '弦を編む面。', baseCost: 20, costGrowth: 2.2, baseProd: 0.4 },
+  { id: 'brane', name: '膜', desc: '弦を編む面。', baseCost: 6, costGrowth: 2.2, baseProd: 0.4 },
   { id: 'bubble', name: '泡宇宙', desc: '膜から生まれる泡。', baseCost: 600, costGrowth: 3, baseProd: 0.15 },
   { id: 'hyper', name: '超空間', desc: 'すべての外側。', baseCost: 4e4, costGrowth: 4, baseProd: 0.05 },
 ];

@@ -15,6 +15,7 @@ export class AutomationView {
   private bbVal!: HTMLInputElement;
   private bbMode!: HTMLSelectElement;
   private ascVal!: HTMLInputElement;
+  private holdSw!: HTMLButtonElement;
 
   private game: Game;
 
@@ -59,7 +60,7 @@ export class AutomationView {
     const opts: Array<[AutoBBMode, string]> = [
       ['constants', '獲得する宇宙定数が◯以上'],
       ['time', '周回の経過秒数が◯以上'],
-      ['multiple', '獲得が所持定数の◯倍以上'],
+      ['multiple', '獲得が累計定数の◯倍以上'],
     ];
     for (const [v, l] of opts) this.bbMode.append(h('option', { value: v }, l));
     this.bbVal = h('input', { type: 'number', inputmode: 'decimal', min: '0', step: 'any', 'aria-label': '値' }) as HTMLInputElement;
@@ -70,7 +71,15 @@ export class AutomationView {
       if (raw !== '' && isFinite(v) && v > 0) this.game.s.auto.bigBangValue = v;
       this.syncInputs();
     });
-    bbCard.extra.append(h('div', { class: 'field' }, [this.bbMode, this.bbVal]), h('div', { class: 'small muted', style: 'margin-top:6px' }, '挑戦中は目標達成で自動ビッグバン。次元上昇できるときは止まる。'));
+    this.holdSw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-label': '次元上昇できるときは止める' }, [h('i')]);
+    this.holdSw.addEventListener('click', () => {
+      this.game.s.auto.bigBangHold = !this.game.s.auto.bigBangHold;
+    });
+    bbCard.extra.append(
+      h('div', { class: 'field' }, [this.bbMode, this.bbVal]),
+      h('div', { class: 'auto-row' }, [h('div', { class: 'grow small' }, '次元上昇できるときは止める'), this.holdSw]),
+      h('div', { class: 'small muted' }, '挑戦中は目標達成で自動ビッグバン。'),
+    );
 
     const ascCard = this.cards.get('autoAscend')!;
     this.ascVal = h('input', { type: 'number', inputmode: 'decimal', min: '1', step: 'any', 'aria-label': '欠片' }) as HTMLInputElement;
@@ -134,6 +143,7 @@ export class AutomationView {
     }
     setText(this.tapRate, fmt(this.game.mods.autoTapRate, 1));
     this.genBtns.forEach((b, i) => toggle(b, 'on', s.auto.gens[i]));
+    toggle(this.holdSw, 'on', s.auto.bigBangHold);
     this.seenUnlocked = s.autoUnlocked.size;
   }
 }

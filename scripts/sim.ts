@@ -136,7 +136,7 @@ while (s.time < end) {
     const g = constantsGain(s, m);
     const want = s.bigBangsEver === 0 ? true : g.gte(s.constants.add(s.constantsEver.mul(0.5)).max(1)) || rt > 3600;
     if (want && rt > 30) {
-      if (s.bigBangsEver < 3 || s.bigBangsEver % 10 === 0) log(`ビッグバン #${s.bigBangsEver + 1} +${g.toString().slice(0, 10)}定数 周回${fmtT(rt)} 累計定数log=${L(s.constantsEver)}`);
+      if (s.bigBangsEver < 3 || s.bigBangsEver % 10 === 0) log(`ビッグバン #${s.bigBangsEver + 1} +${g.toString()}定数 周回${fmtT(rt)} 累計定数log=${L(s.constantsEver)}`);
       bigBang(s, m);
       lastBB = s.time;
       buyLaws();

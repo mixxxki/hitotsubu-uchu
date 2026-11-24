@@ -137,6 +137,10 @@ export function bigBang(s: GameState, m: Mods = computeMods(s)): boolean {
   s.bigBangs++;
   s.bigBangsEver++;
   s.fastestBigBang = Math.min(s.fastestBigBang, runTime);
+  if (runTime > 0) {
+    const rate = g.div(runTime / 60);
+    if (rate.gt(s.bestConstRate)) s.bestConstRate = rate;
+  }
   resetRun(s, computeMods(s));
   emit({ type: 'bigBang', gain: g, challengeDone: done });
   return true;
@@ -159,6 +163,7 @@ export function exitChallenge(s: GameState): void {
 // ---------------------------------------------------------------- 法則の木
 export function lawAvailable(s: GameState, node: LawNode): boolean {
   if (s.laws.has(node.id)) return false;
+  if (node.excl && s.laws.has(node.excl)) return false;
   return node.req.length === 0 || node.req.some((r) => s.laws.has(r));
 }
 
@@ -270,3 +275,15 @@ export function challengeGoal(index: number): number {
 }
 
 export { LAW_TREE };
+
+/** 法則の振り直し: 使った宇宙定数を全額返し、今の周回をリセットする（定数は得られない） */
+export function respecLaws(s: GameState): Decimal {
+  let refund = new Decimal(0);
+  for (const n of LAW_TREE) if (s.laws.has(n.id)) refund = refund.add(n.cost);
+  if (refund.lte(0)) return refund;
+  s.laws = new Set();
+  s.constants = s.constants.add(refund);
+  if (s.challenge !== null) s.challenge = null;
+  resetRun(s, computeMods(s));
+  return refund;
+}
