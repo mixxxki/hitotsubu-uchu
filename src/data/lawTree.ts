@@ -69,7 +69,7 @@ export const LAW_TREE: LawNode[] = [
   { id: 'entropy', name: 'エントロピー', desc: '生成装置の価格×0.5', cost: 3e09, req: ['heritage2'], col: 1, row: 6, effects: [{ type: 'costMult', mult: 0.5 }] },
   { id: 'trial3', name: '試練の深淵', desc: '挑戦9〜12を解放', cost: 5e09, req: ['eternity'], col: 2, row: 6, effects: [{ type: 'unlockChallenges', from: 8, to: 12 }] },
   { id: 'luminosity', name: '光度', desc: '【二択】すべての生産×40（星々の合唱とどちらか一方）', cost: 1e10, req: ['swift', 'harmony'], excl: 'chorus', col: 3, row: 6, effects: [{ type: 'prodMult', mult: 40 }] },
-  { id: 'chorus', name: '星々の合唱', desc: '【二択】宇宙定数の獲得×4、実績1個ごとの倍率+1%（光度とどちらか一方）', cost: 1e10, req: ['harmony'], excl: 'luminosity', col: 4, row: 6, effects: [{ type: 'constGain', mult: 4 }, { type: 'achBonus', add: 0.01 }] },
+  { id: 'chorus', name: '星々の合唱', desc: '【二択】宇宙定数の獲得×12、実績1個ごとの倍率+1%（光度とどちらか一方）', cost: 1e10, req: ['harmony'], excl: 'luminosity', col: 4, row: 6, effects: [{ type: 'constGain', mult: 12 }, { type: 'achBonus', add: 0.01 }] },
 
   { id: 'singular', name: '特異点', desc: '宇宙定数倍率の指数+0.1', cost: 1e15, req: ['curvature'], col: 0, row: 7, effects: [{ type: 'constExp', add: 0.1 }] },
   { id: 'collapse', name: '崩壊', desc: '宇宙定数の獲得×3', cost: 5e15, req: ['entropy', 'curvature'], col: 1, row: 7, effects: [{ type: 'constGain', mult: 3 }] },

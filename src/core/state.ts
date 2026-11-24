@@ -81,7 +81,8 @@ export interface GameState {
     upgrades: boolean;
     bigBang: boolean;
     bigBangMode: AutoBBMode;
-    bigBangValue: number;
+    /** モードごとの条件値 */
+    bigBangValues: Record<AutoBBMode, number>;
     /** 次元上昇できるときは自動ビッグバンを止める */
     bigBangHold: boolean;
     dim: boolean;
@@ -153,8 +154,8 @@ export function newState(now = Date.now()): GameState {
       gens: GENERATORS.map(() => true),
       upgrades: true,
       bigBang: false,
-      bigBangMode: 'constants',
-      bigBangValue: 10,
+      bigBangMode: 'time',
+      bigBangValues: { constants: 1000, time: 300, multiple: 1 },
       bigBangHold: true,
       dim: true,
       ascend: false,

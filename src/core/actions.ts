@@ -287,3 +287,28 @@ export function respecLaws(s: GameState): Decimal {
   resetRun(s, computeMods(s));
   return refund;
 }
+
+/** 二択だけ入れ替える: 一方を返金して外し、もう一方を解明する（今の周回はリセット） */
+export function swapExclusive(s: GameState, id: string): boolean {
+  const node = LAW_TREE.find((n) => n.id === id);
+  if (!node?.excl || !s.laws.has(node.excl)) return false;
+  const other = LAW_TREE.find((n) => n.id === node.excl)!;
+  const funds = s.constants.add(other.cost);
+  if (funds.lt(node.cost)) return false;
+  s.laws.delete(other.id);
+  s.constants = funds.sub(node.cost);
+  s.laws.add(node.id);
+  resetRun(s, computeMods(s));
+  return true;
+}
+
+/** 解明できる法則を安い順にまとめて解明 */
+export function buyAllLaws(s: GameState): number {
+  let n = 0;
+  for (let guard = 0; guard < 100; guard++) {
+    const c = LAW_TREE.filter((x) => lawAvailable(s, x) && s.constants.gte(x.cost)).sort((a, b) => a.cost - b.cost)[0];
+    if (!c || !buyLaw(s, c)) break;
+    n++;
+  }
+  return n;
+}

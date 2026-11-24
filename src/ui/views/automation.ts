@@ -58,17 +58,20 @@ export class AutomationView {
     const bbCard = this.cards.get('autoBigBang')!;
     this.bbMode = h('select', { 'aria-label': '条件' }) as HTMLSelectElement;
     const opts: Array<[AutoBBMode, string]> = [
-      ['constants', '獲得する宇宙定数が◯以上'],
-      ['time', '周回の経過秒数が◯以上'],
-      ['multiple', '獲得が累計定数の◯倍以上'],
+      ['time', '周回が◯秒たったら'],
+      ['constants', '獲得定数が◯以上'],
+      ['multiple', '獲得が累計の◯倍'],
     ];
     for (const [v, l] of opts) this.bbMode.append(h('option', { value: v }, l));
     this.bbVal = h('input', { type: 'number', inputmode: 'decimal', min: '0', step: 'any', 'aria-label': '値' }) as HTMLInputElement;
-    this.bbMode.addEventListener('change', () => (this.game.s.auto.bigBangMode = this.bbMode.value as AutoBBMode));
+    this.bbMode.addEventListener('change', () => {
+      this.game.s.auto.bigBangMode = this.bbMode.value as AutoBBMode;
+      this.syncInputs();
+    });
     this.bbVal.addEventListener('change', () => {
       const raw = this.bbVal.value.trim();
       const v = Number(raw);
-      if (raw !== '' && isFinite(v) && v > 0) this.game.s.auto.bigBangValue = v;
+      if (raw !== '' && isFinite(v) && v > 0) this.game.s.auto.bigBangValues[this.game.s.auto.bigBangMode] = v;
       this.syncInputs();
     });
     this.holdSw = h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-label': '次元上昇できるときは止める' }, [h('i')]);
@@ -124,7 +127,7 @@ export class AutomationView {
   syncInputs(): void {
     const a = this.game.s.auto;
     this.bbMode.value = a.bigBangMode;
-    this.bbVal.value = String(a.bigBangValue);
+    this.bbVal.value = String(a.bigBangValues[a.bigBangMode]);
     this.ascVal.value = String(a.ascendValue);
   }
 

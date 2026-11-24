@@ -114,6 +114,7 @@ export class App {
 
   private setTab(id: TabId): void {
     this.active = id;
+    document.getElementById('app')?.classList.toggle('compact', id !== 'gen');
     for (const [k, b] of this.tabBtns) toggle(b, 'on', k === id);
     for (const [k, v] of Object.entries(this.views)) toggle(v.el, 'active', k === id);
     (this.views[id].el.parentElement as HTMLElement).scrollTop = 0;
@@ -362,7 +363,8 @@ export class App {
   frame(dt: number): void {
     const { s, mods } = this.game;
     setText(this.amountNum, fmt(s.particles));
-    setText(this.rate, `毎秒 +${fmt(mods.pps, 1)}　1タップ +${fmtSmart(mods.tapValue)}`);
+    const auto = s.auto.tap && !hasRule(s, 'noTap') ? mods.tapValue.mul(mods.autoTapRate) : null;
+    setText(this.rate, `毎秒 +${fmt(auto ? mods.pps.add(auto) : mods.pps, 1)}　1タップ +${fmtSmart(mods.tapValue)}`);
 
     // 流れ星
     if (s.star && s.star.id !== this.starId) this.spawnStar(s.star.id);

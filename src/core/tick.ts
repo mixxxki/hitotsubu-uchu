@@ -113,9 +113,10 @@ export function runAutomation(s: GameState, m: Mods): Mods {
       const runTime = s.time - s.runStart;
       let ok = false;
       if (s.challenge !== null) ok = true;
-      else if (s.auto.bigBangMode === 'constants') ok = g.gte(s.auto.bigBangValue);
-      else if (s.auto.bigBangMode === 'time') ok = runTime >= s.auto.bigBangValue;
-      else ok = g.gte(s.constantsEver.max(1).mul(s.auto.bigBangValue));
+      const v = s.auto.bigBangValues[s.auto.bigBangMode];
+      if (s.auto.bigBangMode === 'constants') ok = g.gte(v);
+      else if (s.auto.bigBangMode === 'time') ok = runTime >= v;
+      else ok = g.gte(s.constantsEver.max(1).mul(v));
       if (ok) {
         bigBang(s, m);
         return computeMods(s);

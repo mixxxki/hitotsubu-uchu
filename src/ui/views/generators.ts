@@ -5,7 +5,7 @@ import { genCost, nextMilestone, dimGenCost, dimGenMaxAffordable, dimGenRate, ge
 import { buyGen, genLocked, buyDimGen } from '../../core/actions.ts';
 import { h, setText, setBar, setDisabled, toggle } from '../dom.ts';
 import { GEN_ICONS } from '../icons.ts';
-import { fmt } from '../format.ts';
+import { fmt, fmtTime } from '../format.ts';
 import type Decimal from 'break_eternity.js';
 import { UPGRADES, type UpgradeDef } from '../../data/upgrades.ts';
 import { upgradeStatus, buyUpgrade } from '../../core/actions.ts';
@@ -148,7 +148,12 @@ export class GeneratorsView {
       setText(this.recDesc, best.desc);
     }
     const can = bestCost.lte(s.particles);
-    setText(this.recCost, can ? `${fmt(bestCost)} で購入` : fmt(bestCost));
+    let wait = '';
+    if (!can && mods.pps.gt(0)) {
+      const sec = bestCost.sub(s.particles).div(mods.pps).toNumber();
+      wait = sec < 86400 ? `あと${fmtTime(sec)}` : '';
+    }
+    setText(this.recCost, can ? `${fmt(bestCost)} で購入` : `${fmt(bestCost)}${wait ? `\n${wait}` : ''}`);
     toggle(this.rec, 'dim-rec', !can);
     this.rec.style.opacity = can ? '1' : '0.6';
   }

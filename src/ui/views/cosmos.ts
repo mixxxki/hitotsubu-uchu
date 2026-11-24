@@ -1,3 +1,4 @@
+import type Decimal from 'break_eternity.js';
 // 宇宙タブ: ビッグバン／法則の木／挑戦／次元上昇／多元宇宙
 import type { Game } from '../../core/game.ts';
 import { LAW_TREE, LAW_REPEAT, type LawNode } from '../../data/lawTree.ts';
@@ -9,7 +10,7 @@ import {
 } from '../../core/formulas.ts';
 import {
   bigBang, buyLaw, lawAvailable, buyLawRepeat, lawRepeatAvailable, enterChallenge, exitChallenge, ascend, buyDimUpgrade, buyDimRepeat,
-  multiverse, potentialGain, respecLaws,
+  multiverse, potentialGain, respecLaws, swapExclusive, buyAllLaws,
 } from '../../core/actions.ts';
 import { h, setText, setClass, setDisabled, setBar, toggle } from '../dom.ts';
 import { fmt, fmtTime } from '../format.ts';
@@ -24,7 +25,7 @@ export function bigBangFlash(): void {
 }
 
 type Sub = 'bb' | 'law' | 'chal' | 'dim' | 'multi';
-const ROW_H = 78;
+const ROW_H = 88;
 
 function confirmSheet(title: string, body: string, okLabel: string, tone: 'purple' | 'lime', onOk: () => void): void {
   const ok = h('button', { class: `btn fill ${tone === 'purple' ? 'purple' : ''}`, type: 'button' }, okLabel);
@@ -51,6 +52,9 @@ export class CosmosView {
   private bbBar!: HTMLElement;
   private bbReq!: HTMLElement;
   private bbNext!: HTMLElement;
+  private bbHint!: HTMLElement;
+  private peak: Decimal | null = null;
+  private peakRun = -1;
   private bbStats!: HTMLElement[];
   private chalNote!: HTMLElement;
 
@@ -119,6 +123,7 @@ export class CosmosView {
     const barI = h('i');
     this.bbBar = barI;
     this.bbNext = h('div', { class: 'small muted', style: 'margin-top:6px' });
+    this.bbHint = h('div', { class: 'small muted' });
     this.bbBtn = h('button', { class: 'btn purple fill block', type: 'button', style: 'margin-top:12px' }, 'ビッグバン');
     this.bbBtn.addEventListener('click', () => {
       const s = this.game.s;
@@ -130,6 +135,7 @@ export class CosmosView {
         if (bigBang(this.game.s, this.game.mods)) {
           this.game.refresh();
           bigBangFlash();
+          if (LAW_TREE.some((n) => lawAvailable(this.game.s, n) && this.game.s.constants.gte(n.cost))) this.setSub('law');
         }
       });
     });
@@ -141,14 +147,15 @@ export class CosmosView {
         this.bbReq,
         h('div', { class: 'bar purple' }, [barI]),
         this.bbNext,
+        this.bbHint,
         this.chalNote,
         this.bbBtn,
       ]),
     );
-    const labels = ['今ビッグバンした場合の定数/分', '定数/分の過去最高', '宇宙定数（所持）', '宇宙定数（累計）', '定数による倍率', 'ビッグバン回数', 'この周回の経過', '最速ビッグバン'];
+    const labels = ['今ビッグバンした場合の定数/時', 'この周回のピーク（定数/時）', '宇宙定数（所持）', '宇宙定数（累計）', '定数による倍率', 'ビッグバン回数', 'この周回の経過', '最速ビッグバン'];
     this.bbStats = labels.map(() => h('span', {}));
     p.append(h('div', { class: 'card' }, labels.map((l, i) => h('div', { class: 'kv' }, [h('span', {}, l), this.bbStats[i]]))));
-    p.append(h('p', { class: 'small muted' }, `この周回で粒子を累計 ${fmt(BALANCE.bigBangReq)} 集めるとビッグバンできる。宇宙定数は累計量に応じて永続倍率になり、法則の木で使える（使っても倍率は減らない）。「定数/分」が過去最高を下回り始めたら、ビッグバンの目安。`));
+    p.append(h('p', { class: 'small muted' }, `この周回で粒子を累計 ${fmt(BALANCE.bigBangReq)} 集めるとビッグバンできる。宇宙定数は累計量に応じて永続倍率になり、法則の木で使える（使っても倍率は減らない）。「定数/時」がこの周回のピークから下がり始めたら、ビッグバンの目安。`));
     return p;
   }
 
@@ -177,12 +184,21 @@ export class CosmosView {
         svg.append(line);
         this.links.push({ el: line, a: r, b: n.id });
       }
+      if (n.excl && n.id < n.excl) {
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('class', 'excl');
+        svg.append(line);
+        this.links.push({ el: line, a: n.id, b: n.excl });
+      }
     }
     for (const n of LAW_TREE) {
       const b = h('button', { class: 'node locked', type: 'button', 'aria-label': n.name, style: `left:${((n.col + 0.5) / 5) * 100}%;top:${n.row * ROW_H + 34}px`, html: ICON.law });
       b.addEventListener('click', () => this.openLaw(n));
       this.nodes.set(n.id, b);
-      const lab = h('div', { class: 'node-cost', style: `left:${((n.col + 0.5) / 5) * 100}%;top:${n.row * ROW_H + 34}px` }, fmt(n.cost));
+      if (n.excl) b.classList.add('excl');
+      const labName = h('span', { class: 'nc-name' }, n.name);
+      const labCost = h('span', { class: 'nc-cost' }, fmt(n.cost));
+      const lab = h('div', { class: 'node-cost', style: `left:${((n.col + 0.5) / 5) * 100}%;top:${n.row * ROW_H + 34}px` }, [labName, labCost]);
       this.nodeCosts.set(n.id, lab);
       tree.append(b, lab);
     }
@@ -194,7 +210,16 @@ export class CosmosView {
     });
     this.repeatCard = h('div', { class: 'card purple' }, [h('h3', {}, LAW_REPEAT.name), h('div', { class: 'small' }, LAW_REPEAT.desc), this.repeatInfo, this.repeatBtn]);
     p.append(this.repeatCard);
-    const respec = h('button', { class: 'btn ghost block', type: 'button' }, '法則を振り直す');
+    const buyAll = h('button', { class: 'btn purple block', type: 'button', style: 'margin-bottom:8px' }, '解明できる法則を安い順にまとめて解明');
+    buyAll.addEventListener('click', () => {
+      const n = buyAllLaws(this.game.s);
+      if (n) {
+        this.game.refresh();
+        toast(`法則を${n}個解明した`, 'purple');
+      }
+    });
+    p.insertBefore(buyAll, p.querySelector('.tree'));
+    const respec = h('button', { class: 'btn ghost block', type: 'button' }, '法則を振り直す（今の周回はリセット）');
     respec.addEventListener('click', () =>
       confirmSheet('法則を振り直す', '解明した法則をすべて戻し、使った宇宙定数を全額返す。今の周回はリセットされる（定数は得られない）。', '振り直す', 'purple', () => {
         const r = respecLaws(this.game.s);
@@ -230,6 +255,14 @@ export class CosmosView {
     const btn = h('button', { class: 'btn purple fill block', type: 'button', style: 'margin-top:12px' });
     const cost = h('span', {});
     const reqNames = n.req.map((r) => LAW_TREE.find((x) => x.id === r)!.name).join('・');
+    const swap = h('button', { class: 'btn purple block', type: 'button', style: 'margin-top:8px' }, 'こちらに入れ替える（今の周回はリセット）');
+    swap.addEventListener('click', () => {
+      if (swapExclusive(this.game.s, n.id)) {
+        this.game.refresh();
+        closeSheet();
+        toast(`「${n.name}」に入れ替えた`, 'purple');
+      }
+    });
     btn.addEventListener('click', () => {
       if (buyLaw(this.game.s, n)) {
         this.game.refresh();
@@ -243,6 +276,9 @@ export class CosmosView {
       setText(cost, `${fmt(n.cost)}`);
       const blocked = !!n.excl && s.laws.has(n.excl);
       setText(btn, owned ? '解明済み' : blocked ? '二択のもう一方を解明済み（振り直しで変更可）' : !avail ? '前提の法則が必要' : s.constants.gte(n.cost) ? '解明する' : '宇宙定数が足りない');
+      const canSwap = blocked && s.constants.add(LAW_TREE.find((x) => x.id === n.excl)!.cost).gte(n.cost);
+      swap.style.display = blocked ? '' : 'none';
+      setDisabled(swap, !canSwap);
       setDisabled(btn, owned || !avail || s.constants.lt(n.cost));
     };
     upd();
@@ -254,6 +290,7 @@ export class CosmosView {
         h('div', { class: 'kv' }, [h('span', {}, '宇宙定数'), cost]),
         reqNames ? h('div', { class: 'kv' }, [h('span', {}, '前提（いずれか）'), h('span', { style: 'font-family:var(--sans)' }, reqNames)]) : '',
         btn,
+        swap,
       ]),
       { update: upd },
     );
@@ -276,7 +313,7 @@ export class CosmosView {
             this.game.refresh();
           });
         } else {
-          confirmSheet(`挑戦：${c.name}`, `${c.ruleDesc}。目標：粒子 ${fmt(c.goal)}。今の周回はリセットされる。`, '開始', 'purple', () => {
+          confirmSheet(`挑戦：${c.name}`, `${c.ruleDesc}。目標：粒子 ${fmt(c.goal)}。報酬：${c.rewardDesc}。${s.challengeBest[i] ? `これまでの最高 1e${Math.floor(s.challengeBest[i])}。` : ''}今の周回はリセットされる。`, '開始', 'purple', () => {
             if (enterChallenge(this.game.s, i)) {
               this.game.refresh();
               toast(`挑戦「${c.name}」開始`, 'purple');
@@ -385,19 +422,31 @@ export class CosmosView {
         let reqText = `この周回の粒子 ${fmt(s.runTotal)} / ${fmt(req)}`;
         if (!ok) {
           const pct = s.runTotal.div(req).toNumber() * 100;
-          reqText += `（${pct < 1 ? pct.toFixed(2) : pct.toFixed(1)}%`;
-          if (mods.pps.gt(0)) reqText += `・今のペースで あと約${fmtTime(req.sub(s.runTotal).div(mods.pps).toNumber())}`;
+          const lg = Math.floor(s.runTotal.max(1).log10().toNumber());
+          reqText += pct < 1 ? `（${lg}/${Math.round(req.log10().toNumber())}桁` : `（${pct.toFixed(1)}%`;
+          if (mods.pps.gt(0)) {
+            const eta = req.sub(s.runTotal).div(mods.pps).toNumber();
+            reqText += eta < 86400 ? `・今のペースで あと約${fmtTime(eta)}` : '・装置と強化を増やして加速しよう';
+          }
           reqText += '）';
         }
         setText(this.bbReq, reqText);
-        setBar(this.bbBar, ok ? 1 : s.runTotal.div(req).toNumber());
-        setText(this.bbNext, ok ? `次の+1まで 粒子 ${fmt(nextConstantAt(s, mods))}` : '');
+        setBar(this.bbBar, ok ? 1 : Math.max(s.runTotal.div(req).toNumber(), s.runTotal.max(1).log10().toNumber() / req.log10().toNumber() * 0.25));
+        setText(this.bbNext, ok ? `次の+1まで あと粒子 ${fmt(nextConstantAt(s, mods).sub(s.runTotal).max(0))}` : '');
         setText(this.chalNote, s.challenge !== null ? `挑戦中：${CHALLENGES[s.challenge].name}（目標に達してビッグバンで達成）` : '');
         setDisabled(this.bbBtn, !ok);
         setText(this.bbBtn, s.challenge !== null ? 'ビッグバンして挑戦達成' : 'ビッグバン');
         const rt = Math.max(1, s.time - s.runStart);
-        const rate = ok ? constantsGain(s, mods).div(rt / 60) : null;
-        const st = [rate ? fmt(rate, 2) : '—', s.bestConstRate.gt(0) ? fmt(s.bestConstRate, 2) : '—', fmt(s.constants), fmt(s.constantsEver), `×${fmt(mods.constMult, 2)}`, `${s.bigBangs}（累計 ${s.bigBangsEver}）`, fmtTime(s.time - s.runStart), fmtTime(s.fastestBigBang)];
+        const rate = ok ? constantsGain(s, mods).div(rt / 3600) : null;
+        if (s.runStart !== this.peakRun) {
+          this.peakRun = s.runStart;
+          this.peak = null;
+        }
+        if (rate && (!this.peak || rate.gt(this.peak))) this.peak = rate;
+        const falling = !!(rate && this.peak && rate.lt(this.peak.mul(0.9)));
+        setText(this.bbHint, !ok ? '' : falling ? '定数/時がこの周回のピークから下がってきた。ビッグバンの目安。' : 'まだ定数/時が伸びている。待つほど効率が上がる。');
+        toggle(this.bbHint, 'lime', falling);
+        const st = [rate ? fmt(rate, 2) : '—', this.peak ? fmt(this.peak, 2) : '—', fmt(s.constants), fmt(s.constantsEver), `×${fmt(mods.constMult, 2)}`, `${s.bigBangs}（累計 ${s.bigBangsEver}）`, fmtTime(s.time - s.runStart), fmtTime(s.fastestBigBang)];
         st.forEach((v, i) => setText(this.bbStats[i], v));
         break;
       }
@@ -412,7 +461,7 @@ export class CosmosView {
             setClass(b, cls);
             b.innerHTML = owned ? ICON.lawOwned : ICON.law;
             setClass(this.nodeCosts.get(n.id)!, owned ? 'node-cost owned' : avail ? 'node-cost' : 'node-cost locked');
-            setText(this.nodeCosts.get(n.id)!, owned ? n.name : fmt(n.cost));
+            if (n.excl) b.classList.add('excl');
           }
         }
         for (const l of this.links) {
@@ -434,6 +483,7 @@ export class CosmosView {
           const unlocked = mods.challengesUnlocked[i];
           const done = s.challengesDone.has(i);
           const active = s.challenge === i;
+          toggle(card.root, 'collapsed', done && !active);
           setText(card.tag, active ? '挑戦中' : done ? '達成' : unlocked ? '挑戦可' : '未解放');
           setClass(card.tag, active ? 'tag active' : done ? 'tag done' : 'tag');
           toggle(card.root, 'locked-box', !unlocked);
@@ -441,7 +491,7 @@ export class CosmosView {
           setDisabled(card.btn, !unlocked || (s.challenge !== null && !active));
           const b = s.challengeBest[i] ?? 0;
           setText(card.best, b > 0 ? `最高到達 1e${Math.floor(b)}${done ? '' : `（目標 1e${Math.round(Math.log10(c.goal))}）`}` : '');
-          const prog = active ? s.runTotal.max(1).log10().div(Math.log10(c.goal)).toNumber() : done ? 1 : b / Math.log10(c.goal);
+          const prog = active ? (s.runTotal.max(1).log10().toNumber() - 15) / (Math.log10(c.goal) - 15) : done ? 1 : (b - 15) / (Math.log10(c.goal) - 15);
           setBar(card.prog, prog);
         });
         break;
@@ -479,6 +529,8 @@ export class CosmosView {
   /** タブの点: 何か行動できるとき */
   updateAttention(): void {
     const { s, mods } = this.game;
+    const nLaw = LAW_TREE.filter((n) => lawAvailable(s, n) && s.constants.gte(n.cost)).length;
+    setText(this.subBtns.get('law')!, nLaw > 0 ? `法則の木 ${nLaw}` : '法則の木');
     let a = canBigBang(s) && s.bigBangsEver === 0;
     if (!a) a = LAW_TREE.some((n) => lawAvailable(s, n) && s.constants.gte(n.cost));
     if (!a && lawRepeatAvailable(s)) a = s.constants.gte(lawRepeatCost(s));
