@@ -54,7 +54,7 @@ export const BALANCE = {
   energyShardExp: 0.02,
 
   // ---- 多元宇宙（枠のみ） ----
-  multiverseReqShardsEver: 1e13,
+  multiverseReqShardsEver: 3e15,
   multiverseReqAscensions: 10,
 
   // ---- 放置 ----

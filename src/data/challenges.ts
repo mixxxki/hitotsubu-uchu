@@ -47,8 +47,8 @@ export const CHALLENGES: ChallengeDef[] = [
   { id: 'c6', name: '平坦な道', rule: 'noMilestones', ruleDesc: '25・50・100台の節目ボーナスが無効', goal: 1e30, reward: { type: 'milestoneMult', add: 0.5 }, rewardDesc: '節目ボーナス+0.5' },
   { id: 'c7', name: '忘却', rule: 'noAchievements', ruleDesc: '実績ボーナスが無効', goal: 1e34, reward: { type: 'achBonus', add: 0.01 }, rewardDesc: '実績1個ごとの倍率+1%' },
   { id: 'c8', name: '減衰', rule: 'decay', ruleDesc: '生産が時間とともに落ちる（10分で半分）', goal: 1e40, reward: { type: 'runTimeMult', maxMult: 20 }, rewardDesc: '周回の経過時間で生産増（最大×20）' },
-  { id: 'c9', name: '萎縮', rule: 'weakPow', ruleDesc: '生産量が0.8乗になる', goal: 1e37, reward: { type: 'prodMult', mult: 1e4 }, rewardDesc: 'すべての生産×10000' },
+  { id: 'c9', name: '萎縮', rule: 'weakPow', ruleDesc: '生産量が0.8乗になる', goal: 1e40, reward: { type: 'prodMult', mult: 1e4 }, rewardDesc: 'すべての生産×10000' },
   { id: 'c10', name: '一点集中', rule: 'lastBoughtOnly', ruleDesc: '最後に購入した種類の装置しか生産しない', goal: 1e50, reward: { type: 'synergyMult', mult: 3 }, rewardDesc: '相乗効果×3' },
   { id: 'c11', name: '無法', rule: 'noLaws', ruleDesc: '法則の木の効果が無効', goal: 1e58, reward: { type: 'constGain', mult: 5 }, rewardDesc: '宇宙定数の獲得×5' },
-  { id: 'c12', name: '真空', rule: 'vacuum', ruleDesc: 'タップ・強化・流れ星がすべて無効', goal: 1e70, reward: { type: 'constExp', add: 0.15 }, rewardDesc: '宇宙定数倍率の指数+0.15' },
+  { id: 'c12', name: '真空', rule: 'vacuum', ruleDesc: 'タップ・強化・流れ星がすべて無効', goal: 1e69, reward: { type: 'constExp', add: 0.15 }, rewardDesc: '宇宙定数倍率の指数+0.15' },
 ];
